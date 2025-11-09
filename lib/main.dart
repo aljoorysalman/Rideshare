@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: SplashView(), //  correct spelling + case
+      home: SplashView(),
       debugShowCheckedModeBanner: false,
     );
   }
