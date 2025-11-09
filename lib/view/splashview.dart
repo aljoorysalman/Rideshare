@@ -26,7 +26,7 @@ class _SplashViewState extends State<SplashView>
     // Controller handles the zoom & color animation after delay
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1), // 3s smooth zoom + fade
+      duration: const Duration(seconds: 3), // 3s smooth zoom + fade
     );
 
     // Logo zooms from 1x → 12x smoothly
