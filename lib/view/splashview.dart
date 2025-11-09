@@ -2,8 +2,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:gap/gap.dart';
-import 'package:rideshare/view/auth/signup_view.dart';
+import 'package:rideshare/view/ride/home_view.dart';
+import 'package:rideshare/core/constants/app_colors.dart';
 
 // Splash screen (first page that opens)
 class SplashView extends StatefulWidget {
@@ -35,7 +35,7 @@ class _SplashViewState extends State<SplashView>
     );
 
     // Background fades from white → black
-    _colorAnim = ColorTween(begin: Colors.white, end: Colors.black).animate(
+    _colorAnim = ColorTween(begin: AppColors.background, end: AppColors.darkBackground,).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic),
     );
 
@@ -52,7 +52,7 @@ class _SplashViewState extends State<SplashView>
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
-                  const SignupView(),
+                  const HomeView(),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
                 // Fade in signup screen smoothly

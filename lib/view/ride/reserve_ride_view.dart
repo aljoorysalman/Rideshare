@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
 
-class RequestRideView extends StatelessWidget {
-  const RequestRideView({super.key});
+class ReserveRideView extends StatelessWidget {
+  const ReserveRideView({super.key});
 
-   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -17,10 +17,10 @@ class RequestRideView extends StatelessWidget {
             Navigator.pop(context); // 👈 go back to previous page
           },
         ),
-      ),     
-       body: const Center(
+      ),    
+      body: const Center(
         child: Text(
-          'This is the Request Ride page',
+          'This is the Reserve Ride page',
           style: TextStyle(fontSize: 20, color: Colors.black),
         ),
       ),
