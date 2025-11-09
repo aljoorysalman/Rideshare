@@ -26,7 +26,7 @@ class _SplashViewState extends State<SplashView>
     // Controller handles the zoom & color animation after delay
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3), // 3s smooth zoom + fade
+      duration: const Duration(seconds: 1), // 3s smooth zoom + fade
     );
 
     // Logo zooms from 1x → 12x smoothly
@@ -40,15 +40,15 @@ class _SplashViewState extends State<SplashView>
     );
 
     // Step 1️⃣: Wait 2 seconds so user can read the logo/text first
-    Timer(const Duration(seconds: 2), () {
+    Timer(const Duration(seconds: 1), () {
       // Step 2️⃣: Start the zoom + fade animation
       _controller.forward();
     });
 
-    // Step 3️⃣: When animation completes, open Signup page
+    // Step 3️⃣: When animation completes, open home page
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 25), () {
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
@@ -58,7 +58,7 @@ class _SplashViewState extends State<SplashView>
                 // Fade in signup screen smoothly
                 return FadeTransition(opacity: animation, child: child);
               },
-              transitionDuration: const Duration(milliseconds: 800),
+              transitionDuration: const Duration(milliseconds: 50),
             ),
           );
         });
