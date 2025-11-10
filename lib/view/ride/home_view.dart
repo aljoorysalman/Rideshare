@@ -72,7 +72,7 @@ class _HomeContent extends StatelessWidget {
               },
             ),
 
-            const Gap(40), // spacing between the two ride types
+            const Gap(100), // spacing between the two ride types
 
             // ⏰ Second section: Schedule Ride
             Image.asset('img/clock.png', height: 80),

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:rideshare/view/ride/home_view.dart';
-import 'package:rideshare/view/chat/communication_view.dart';
-import 'package:rideshare/view/profile/profile_view.dart';
 import 'package:rideshare/view/splashview.dart';
 
 void main() {
@@ -15,12 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const SplashView(),
-      routes: {
-        '/home': (context) => const HomeView(),
-        '/communication': (context) => const CommunicationView(),
-        '/profile': (context) => const ProfileView(),
-      },
+      home: const SplashView(),  
     );
   }
 }
