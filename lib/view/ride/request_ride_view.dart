@@ -1,29 +1,74 @@
 import 'package:flutter/material.dart';
-import 'package:rideshare/core/constants/app_colors.dart';
+import 'package:rideshare/view/widgets/custom_textfield.dart';
+import 'package:rideshare/view/ride/select_location_view.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class RequestRideView extends StatelessWidget {
+
+class RequestRideView extends StatefulWidget {
   const RequestRideView({super.key});
 
-   @override
+  @override
+  State<RequestRideView> createState() => _RequestRideViewState();
+}
+
+class _RequestRideViewState extends State<RequestRideView> {
+  final TextEditingController pickupController = TextEditingController();
+  final TextEditingController dropoffController = TextEditingController();
+
+  LatLng? pickupLatLng;
+  LatLng? dropoffLatLng;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background, // same as page background
-        elevation: 0, // remove shadow
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context); // 👈 go back to previous page
-          },
-        ),
-      ),     
-       body: const Center(
-        child: Text(
-          'This is the Request Ride page',
-          style: TextStyle(fontSize: 20, color: Colors.black),
+      appBar: AppBar(title: const Text("Request a Ride")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+
+            // PICKUP FIELD
+            CustomTextField(
+              hint: "Pickup Location",
+              controller: pickupController,
+              readOnly: true,
+              onTap: () => _openLocationSelector(true),
+            ),
+
+            const SizedBox(height: 16),
+
+            // DROPOFF FIELD
+            CustomTextField(
+              hint: "Drop-off Location",
+              controller: dropoffController,
+              readOnly: true,
+              onTap: () => _openLocationSelector(false),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Future<void> _openLocationSelector(bool isPickup) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelectLocationView(isPickup: isPickup),
+      ),
+    );
+
+    if (result == null) return;
+
+    setState(() {
+      if (isPickup) {
+        pickupController.text = result["address"];
+        pickupLatLng = result["latLng"];
+      } else {
+        dropoffController.text = result["address"];
+        dropoffLatLng = result["latLng"];
+      }
+    });
+  }
 }
+
