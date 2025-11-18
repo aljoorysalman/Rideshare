@@ -14,11 +14,18 @@ class SelectLocationView extends StatefulWidget {
 }
 
 class _SelectLocationViewState extends State<SelectLocationView> {
-  GoogleMapController? _mapController;
   LatLng? selectedLatLng;
   String selectedAddress = "";
 
   static const LatLng riyadhCenter = LatLng(24.7136, 46.6753);
+
+  GoogleMapController? _googleMapController;
+
+  @override
+  void dispose() {
+    _googleMapController?.dispose(); // ⭐ FIX: Destroys the map fully
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,26 +42,38 @@ class _SelectLocationViewState extends State<SelectLocationView> {
       ),
       body: Stack(
         children: [
+          /// ⭐ GOOGLE MAP
           GoogleMap(
             initialCameraPosition: const CameraPosition(
               target: riyadhCenter,
               zoom: 14,
             ),
             onMapCreated: (controller) {
-              _mapController = controller;
+              _googleMapController = controller;
             },
-            onTap: _handleMapTap,
+            onTap: (LatLng point) {
+              _handleMapTap(point);
+            },
+
+            zoomGesturesEnabled: true,
+            scrollGesturesEnabled: true,
+            rotateGesturesEnabled: true,
+            tiltGesturesEnabled: true,
+
             markers: selectedLatLng == null
-                ? {}
+                ? <Marker>{}
                 : {
                     Marker(
-                      markerId: const MarkerId("selected"),
+                      markerId: const MarkerId("selectedLocation"),
                       position: selectedLatLng!,
-                    ),
+                      icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed,
+                      ),
+                    )
                   },
           ),
 
-          // Confirm Button
+          /// ⭐ Confirm Button
           Positioned(
             left: 16,
             right: 16,
@@ -75,24 +94,28 @@ class _SelectLocationViewState extends State<SelectLocationView> {
     );
   }
 
-  // When user taps
+  /// ⭐ Save map tap & reverse-geocode
   Future<void> _handleMapTap(LatLng latLng) async {
     setState(() {
       selectedLatLng = latLng;
     });
 
-    // Convert to address
-    List<Placemark> placemarks =
-        await placemarkFromCoordinates(latLng.latitude, latLng.longitude);
+    try {
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(latLng.latitude, latLng.longitude);
 
-    Placemark p = placemarks.first;
+      Placemark p = placemarks.first;
 
-    setState(() {
-      selectedAddress =
-          "${p.street ?? ''}, ${p.locality ?? ''}, ${p.country ?? ''}";
-    });
+      setState(() {
+        selectedAddress =
+            "${p.street ?? ''}, ${p.locality ?? ''}, ${p.country ?? ''}";
+      });
+    } catch (e) {
+      selectedAddress = "Selected location";
+    }
   }
 
+  /// ⭐ Return selected point back
   void _confirmSelection() {
     Navigator.pop(context, {
       "latLng": selectedLatLng,
