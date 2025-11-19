@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
-import 'package:rideshare/view/widgets/custom_button.dart'; // عدلي المسار لو مختلف
 
 class SelectLocationView extends StatefulWidget {
   final bool isPickup;
@@ -14,11 +14,18 @@ class SelectLocationView extends StatefulWidget {
 }
 
 class _SelectLocationViewState extends State<SelectLocationView> {
-  GoogleMapController? _mapController;
   LatLng? selectedLatLng;
   String selectedAddress = "";
 
   static const LatLng riyadhCenter = LatLng(24.7136, 46.6753);
+
+  GoogleMapController? _googleMapController;
+
+  @override
+  void dispose() {
+    _googleMapController?.dispose(); // ⭐ FIX: Destroys the map fully
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,43 +34,53 @@ class _SelectLocationViewState extends State<SelectLocationView> {
       appBar: AppBar(
         title: Text(
           widget.isPickup ? "Select Pickup" : "Select Drop-off",
-          style: TextStyle(color: AppColors.textPrimary),
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         backgroundColor: AppColors.background,
         elevation: 0,
-        // شلنا const عشان ما يعترض على AppColors
-        iconTheme: IconThemeData(color: AppColors.textPrimary),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: Stack(
         children: [
+          /// ⭐ GOOGLE MAP
           GoogleMap(
             initialCameraPosition: const CameraPosition(
               target: riyadhCenter,
               zoom: 14,
             ),
             onMapCreated: (controller) {
-              _mapController = controller;
+              _googleMapController = controller;
             },
-            onTap: _handleMapTap,
+            onTap: (LatLng point) {
+              _handleMapTap(point);
+            },
+
+            zoomGesturesEnabled: true,
+            scrollGesturesEnabled: true,
+            rotateGesturesEnabled: true,
+            tiltGesturesEnabled: true,
+
             markers: selectedLatLng == null
-                ? {}
+                ? <Marker>{}
                 : {
                     Marker(
-                      markerId: const MarkerId("selected"),
+                      markerId: const MarkerId("selectedLocation"),
                       position: selectedLatLng!,
-                    ),
+                      icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed,
+                      ),
+                    )
                   },
           ),
 
-          // زر التأكيد
+          /// ⭐ Confirm Button
           Positioned(
             left: 16,
             right: 16,
             bottom: 22,
             child: CustomButton(
               text: "Confirm location",
-              onPressed:
-                  selectedLatLng == null ? () {} : _confirmSelection,
+              onPressed: selectedLatLng == null ? () {} : _confirmSelection,
               color: selectedLatLng == null
                   ? AppColors.lightGreyBackground
                   : AppColors.primary,
@@ -77,25 +94,28 @@ class _SelectLocationViewState extends State<SelectLocationView> {
     );
   }
 
+  /// ⭐ Save map tap & reverse-geocode
   Future<void> _handleMapTap(LatLng latLng) async {
     setState(() {
       selectedLatLng = latLng;
     });
 
-    // تحويل الإحداثيات لعنوان
-    final placemarks = await placemarkFromCoordinates(
-      latLng.latitude,
-      latLng.longitude,
-    );
+    try {
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(latLng.latitude, latLng.longitude);
 
-    final p = placemarks.first;
+      Placemark p = placemarks.first;
 
-    setState(() {
-      selectedAddress =
-          "${p.street ?? ''}, ${p.locality ?? ''}, ${p.country ?? ''}";
-    });
+      setState(() {
+        selectedAddress =
+            "${p.street ?? ''}, ${p.locality ?? ''}, ${p.country ?? ''}";
+      });
+    } catch (e) {
+      selectedAddress = "Selected location";
+    }
   }
 
+  /// ⭐ Return selected point back
   void _confirmSelection() {
     Navigator.pop(context, {
       "latLng": selectedLatLng,
