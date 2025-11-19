@@ -23,7 +23,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
 
   @override
   void dispose() {
-    _googleMapController?.dispose(); // ⭐ FIX: Destroys the map fully
+    _googleMapController?.dispose();
     super.dispose();
   }
 
@@ -42,7 +42,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
       ),
       body: Stack(
         children: [
-          /// ⭐ GOOGLE MAP
+        // GOOGLE MAP
           GoogleMap(
             initialCameraPosition: const CameraPosition(
               target: riyadhCenter,
@@ -73,7 +73,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
                   },
           ),
 
-          /// ⭐ Confirm Button
+          /// Confirm Button
           Positioned(
             left: 16,
             right: 16,
@@ -94,7 +94,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
     );
   }
 
-  /// ⭐ Save map tap & reverse-geocode
+  /// Save map tap & reverse-geocode
   Future<void> _handleMapTap(LatLng latLng) async {
     setState(() {
       selectedLatLng = latLng;
@@ -115,7 +115,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
     }
   }
 
-  /// ⭐ Return selected point back
+  /// Return selected point back
   void _confirmSelection() {
     Navigator.pop(context, {
       "latLng": selectedLatLng,
