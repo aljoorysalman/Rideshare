@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
 import 'package:rideshare/view/widgets/bottom_nav_bar.dart';
+import 'package:rideshare/view/chat/chat_screen.dart';
 
 class CommunicationView extends StatefulWidget {
   const CommunicationView({super.key});
@@ -35,19 +36,16 @@ class _CommunicationViewState extends State<CommunicationView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Text(
-              'Communication Page',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
-                decoration: TextDecoration.underline,
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ChatScreen(), // ← هنا التعديل الصحيح
               ),
-            ),
-          ],
+            );
+          },
+          child: const Text('Open Chat'),
         ),
       ),
       bottomNavigationBar: BottomNavBar(

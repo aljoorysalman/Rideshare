@@ -11,6 +11,15 @@ dependencies:
   flutter:
     sdk: flutter
 
+  cupertino_icons: ^1.0.8
+  gap: ^3.0.1
+  flutter_svg: ^2.0.9
+  vector_graphics: ^1.1.7
+
+  firebase_core: ^4.2.1
+  cloud_firestore: ^6.1.0
+
+ 
   # Google Maps
   google_maps_flutter: ^2.6.1
 
