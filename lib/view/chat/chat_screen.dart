@@ -20,11 +20,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+ Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Driver'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Colors.white,
       ),
       body: Column(
         children: [
