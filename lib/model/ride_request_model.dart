@@ -40,18 +40,18 @@ class RideRequestModel {
     };
   }
 
-  // Convert back from JSON (optional)
+  // Convert from JSON (optional)
   factory RideRequestModel.fromJson(Map<String, dynamic> json) {
     return RideRequestModel(
       pickupAddress: json["pickupAddress"],
       dropoffAddress: json["dropoffAddress"],
-      pickupLat: json["pickupLat"],
-      pickupLng: json["pickupLng"],
-      dropoffLat: json["dropoffLat"],
-      dropoffLng: json["dropoffLng"],
+      pickupLat: (json["pickupLat"] as num).toDouble(),
+      pickupLng: (json["pickupLng"] as num).toDouble(),
+      dropoffLat: (json["dropoffLat"] as num).toDouble(),
+      dropoffLng: (json["dropoffLng"] as num).toDouble(),
       direction: json["direction"],
       riderId: json["riderId"],
       timestamp: DateTime.parse(json["timestamp"]),
-    );
-  }
+);
+}
 }
