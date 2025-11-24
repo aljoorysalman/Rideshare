@@ -1,33 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ChatScreen extends StatefulWidget {
-  final String roomId; // ⭐ الغرفة الخاصة بالرحلة
+class ChatView extends StatefulWidget {
+  final String roomId;
 
-  const ChatScreen({super.key, required this.roomId});
+  const ChatView({super.key, required this.roomId});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatView> createState() => _ChatViewState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _textController = TextEditingController();
+class _ChatViewState extends State<ChatView> {
+  final TextEditingController _messageController = TextEditingController();
 
-  // إرسال رسالة داخل الغرفة
   void sendMessage() async {
-    if (_textController.text.trim().isEmpty) return;
+    if (_messageController.text.trim().isEmpty) return;
 
     await FirebaseFirestore.instance
         .collection("messages")
         .doc(widget.roomId)
         .collection("chat")
         .add({
-      "message": _textController.text.trim(),
+      "message": _messageController.text.trim(),
       "senderId": "user1",
       "timestamp": FieldValue.serverTimestamp(),
     });
 
-    _textController.clear();
+    await FirebaseFirestore.instance
+        .collection("messages")
+        .doc(widget.roomId)
+        .update({
+      "lastMessage": _messageController.text.trim(),
+      "timestamp": DateTime.now(),
+    });
+
+    _messageController.clear();
   }
 
   @override
@@ -37,29 +44,29 @@ class _ChatScreenState extends State<ChatScreen> {
         title: const Text("Chat"),
         backgroundColor: Colors.black,
       ),
+
       body: Column(
         children: [
-          // ---------------- الرسائل ----------------
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection("messages")
                   .doc(widget.roomId)
                   .collection("chat")
-                  .orderBy("timestamp")
+                  .orderBy("timestamp", descending: false)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final msgs = snapshot.data!.docs;
+                final messages = snapshot.data!.docs;
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(12),
-                  itemCount: msgs.length,
+                  itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg = msgs[index];
+                    final msg = messages[index];
                     final bool isMe = msg["senderId"] == "user1";
 
                     return Align(
@@ -71,12 +78,13 @@ class _ChatScreenState extends State<ChatScreen> {
                             vertical: 10, horizontal: 14),
                         decoration: BoxDecoration(
                           color: isMe ? Colors.black : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Text(
                           msg["message"],
                           style: TextStyle(
                             color: isMe ? Colors.white : Colors.black,
+                            fontSize: 16,
                           ),
                         ),
                       ),
@@ -87,13 +95,12 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // ---------------- كتابة الرسالة ----------------
           SafeArea(
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _textController,
+                    controller: _messageController,
                     decoration: const InputDecoration(
                       hintText: "اكتب رسالة...",
                       contentPadding: EdgeInsets.all(12),
@@ -103,10 +110,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 IconButton(
                   onPressed: sendMessage,
                   icon: const Icon(Icons.send, color: Colors.black),
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
      ),
 );

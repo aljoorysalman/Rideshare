@@ -1,0 +1,130 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'ride_request_model.dart';
+import 'dart:math';
+
+class RideRequestController {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // ---------------------------------
+  // Campus Coordinates (500m radius)
+  // ---------------------------------
+  static const double campusRadius = 0.5; // km → 500 meters
+
+  // Male Campus
+  static const double maleCampusLat = 24.812130;
+  static const double maleCampusLng = 46.724850;
+
+  // Female Campus (King Abdullah City)
+  static const double femaleCampusLat = 24.836630;
+  static const double femaleCampusLng = 46.727420;
+
+  // ---------------------------------
+  // Distance Calculation (Haversine)
+  // ---------------------------------
+  double _distanceInKm(lat1, lon1, lat2, lon2) {
+    const double R = 6371; // Earth radius in KM
+    double dLat = (lat2 - lat1) * pi / 180;
+    double dLon = (lon2 - lon1) * pi / 180;
+
+    double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1 * pi / 180) *
+            cos(lat2 * pi / 180) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return R * c; // distance in KM
+  }
+
+  bool _isInsideCampus(double lat, double lng) {
+    double distToMale = _distanceInKm(lat, lng, maleCampusLat, maleCampusLng);
+    double distToFemale =
+        _distanceInKm(lat, lng, femaleCampusLat, femaleCampusLng);
+
+    return distToMale <= campusRadius || distToFemale <= campusRadius;
+  }
+
+  // ---------------------------------
+  // Validation
+  // ---------------------------------
+  String? validateInputs({
+    required String pickupAddress,
+    required String dropoffAddress,
+    required double? pickupLat,
+    required double? pickupLng,
+    required double? dropoffLat,
+    required double? dropoffLng,
+  }) {
+    if (pickupAddress.isEmpty || dropoffAddress.isEmpty) {
+      return "Please fill all fields.";
+    }
+
+    if (pickupLat == null || pickupLng == null) {
+      return "Pickup location is missing.";
+    }
+
+    if (dropoffLat == null || dropoffLng == null) {
+      return "Drop-off location is missing.";
+    }
+
+    return null; // All good
+  }
+
+  // ---------------------------------
+  // Determine Trip Direction
+  // ---------------------------------
+  String detectTripDirection({
+    required double pickupLat,
+    required double pickupLng,
+    required double dropoffLat,
+    required double dropoffLng,
+  }) {
+    bool pickupInside = _isInsideCampus(pickupLat, pickupLng);
+    bool dropoffInside = _isInsideCampus(dropoffLat, dropoffLng);
+
+    if (pickupInside) return "CampusToHome";
+    if (dropoffInside) return "HomeToCampus";
+
+    return "Undefined";
+  }
+
+  // ---------------------------------
+  // Create Model
+  // ---------------------------------
+  RideRequestModel createRideRequest({
+    required String pickupAddress,
+    required String dropoffAddress,
+    required double pickupLat,
+    required double pickupLng,
+    required double dropoffLat,
+    required double dropoffLng,
+    required String riderId,
+  }) {
+    String direction = detectTripDirection(
+      pickupLat: pickupLat,
+      pickupLng: pickupLng,
+      dropoffLat: dropoffLat,
+      dropoffLng: dropoffLng,
+    );
+
+    return RideRequestModel(
+      pickupAddress: pickupAddress,
+      dropoffAddress: dropoffAddress,
+      pickupLat: pickupLat,
+      pickupLng: pickupLng,
+      dropoffLat: dropoffLat,
+      dropoffLng: dropoffLng,
+      direction: direction,
+      riderId: riderId,
+      timestamp: DateTime.now(),
+    );
+  }
+
+  // ---------------------------------
+  // Save to Firebase
+  // ---------------------------------
+  Future<void> saveToFirebase(RideRequestModel request) async {
+    await _firestore.collection("ride_requests").add(request.toJson());
+  }
+}
