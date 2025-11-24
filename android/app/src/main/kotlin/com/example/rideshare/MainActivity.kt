@@ -1,4 +1,4 @@
-package com.example.temp_fix
+package com.example.rideshare
 
 import io.flutter.embedding.android.FlutterActivity
 

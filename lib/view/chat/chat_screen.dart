@@ -31,11 +31,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+ Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Chat"),
-        backgroundColor: Colors.black,
+        title: const Text('Driver'),
+        backgroundColor: Colors.white,
       ),
       body: Column(
         children: [
