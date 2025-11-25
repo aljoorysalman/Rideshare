@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
 import 'package:rideshare/view/widgets/bottom_nav_bar.dart';
 import 'package:rideshare/view/chat/chat_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CommunicationView extends StatefulWidget {
   const CommunicationView({super.key});
@@ -11,24 +12,36 @@ class CommunicationView extends StatefulWidget {
 }
 
 class _CommunicationViewState extends State<CommunicationView> {
-  int _currentIndex = 1; // current tab is Communication
+  int _currentIndex = 1;
 
   void _onTabSelected(int index) {
     setState(() {
       _currentIndex = index;
     });
 
-    // Navigation logic for tabs
     switch (index) {
       case 0:
         Navigator.pushReplacementNamed(context, '/home');
         break;
       case 1:
-        break; // Already on this tab
+        break;
       case 2:
         Navigator.pushReplacementNamed(context, '/profile');
         break;
     }
+  }
+
+  // 🔥 تجيب آخر roomId من Firestore
+  Future<String?> _getLatestRoomId() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection("messages")
+        .orderBy("timestamp", descending: true)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return null;
+
+    return snapshot.docs.first.id;
   }
 
   @override
@@ -37,11 +50,20 @@ class _CommunicationViewState extends State<CommunicationView> {
       backgroundColor: AppColors.background,
       body: Center(
         child: ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
+            String? roomId = await _getLatestRoomId();
+
+            if (roomId == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("No chats available")),
+              );
+              return;
+            }
+
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const ChatScreen(), // ← هنا التعديل الصحيح
+                builder: (_) => ChatScreen(roomId: roomId),
               ),
             );
           },
@@ -51,7 +73,7 @@ class _CommunicationViewState extends State<CommunicationView> {
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onTabSelected,
-      ),
-    );
-  }
+     ),
+);
+}
 }
