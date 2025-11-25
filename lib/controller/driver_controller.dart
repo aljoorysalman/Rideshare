@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rideshare/model/driver_model.dart';
 
-class DriverService {
+class DriverController { 
+
   final CollectionReference driverRef =
       FirebaseFirestore.instance.collection("drivers");
 
@@ -39,7 +40,7 @@ class DriverService {
   /// Update driver real-time location
   Future<void> updateLocation(String driverID, double lat, double lng) async {
     await driverRef.doc(driverID).update({
-      "location": GeoPoint(lat, lng), // ⭐ better than manual map
+      "location": GeoPoint(lat, lng), 
     });
   }
 
@@ -80,4 +81,3 @@ class DriverService {
     });
   }
 }
-

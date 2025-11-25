@@ -16,8 +16,8 @@ class DriverModel {
   String status;                      // online / offline / onTrip
   double rating;
 
-  GeoPoint? location;                 // ⭐ live location
-  String? currentTripID;              // ⭐ for accepted ride tracking
+  GeoPoint? location;                 //  live location
+  String? currentTripID;              //  for accepted ride tracking
 
   DriverModel({
     required this.userID,
@@ -39,9 +39,8 @@ class DriverModel {
     this.currentTripID,
   });
 
-  // ----------------------------
   // Firestore → Model
-  // ----------------------------
+
   factory DriverModel.fromMap(Map<String, dynamic> map) {
     return DriverModel(
       userID: map['userID'] ?? '',
@@ -64,9 +63,8 @@ class DriverModel {
     );
   }
 
-  // ----------------------------
   // Model → Firestore
-  // ----------------------------
+
   Map<String, dynamic> toMap() {
     return {
       'userID': userID,

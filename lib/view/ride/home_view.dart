@@ -57,7 +57,7 @@ class _HomeContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 🚗 First section: Request Ride
+            //  First section: Request Ride
             Image.asset('img/car.png', height: 80),
             const Gap(16),
             CustomButton(
@@ -74,7 +74,7 @@ class _HomeContent extends StatelessWidget {
 
             const Gap(100), // spacing between the two ride types
 
-            // ⏰ Second section: Schedule Ride
+            //  Second section: Schedule Ride
             Image.asset('img/clock.png', height: 80),
             const Gap(16),
             CustomButton(

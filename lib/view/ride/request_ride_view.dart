@@ -25,6 +25,9 @@ class _RequestRideViewState extends State<RequestRideView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+       appBar: AppBar(
+        backgroundColor: Colors.white,
+      ),
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 90, 20, 30),

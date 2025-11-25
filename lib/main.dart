@@ -24,8 +24,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashView()
-
+      home: AcceptedRideView(
+         driverID: "Uxf5zJgFui6ndkj6jgdP",
+         pickupLatLng: LatLng(24.7136, 46.6753),
+)
 
     );
   }
