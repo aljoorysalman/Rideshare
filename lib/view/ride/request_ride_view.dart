@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:rideshare/core/constants/app_colors.dart';
+import 'package:rideshare/view/widgets/custom_textfield.dart';
+import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/view/ride/select_location_view.dart';
 import 'package:rideshare/view/ride/waiting_view.dart';
-import 'package:rideshare/view/widgets/custom_button.dart';
-import 'package:rideshare/controller/RideRequestController';
+
+import 'package:rideshare/controller/ride_request_controller.dart';
 import 'package:rideshare/controller/ride_matching_controller.dart';
-import 'package:rideshare/model/driver_model.dart';
+import 'package:rideshare/model/ride_request_model.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RequestRideView extends StatefulWidget {
@@ -23,11 +25,12 @@ class _RequestRideViewState extends State<RequestRideView> {
   LatLng? pickupLatLng;
   LatLng? dropoffLatLng;
 
+  // controllers
+  final RideRequestController requestController = RideRequestController();
+  final RideMatchingController matchingController = RideMatchingController();
+
   String selectedGender = "Females only";
   String selectedCar = "economy";
-
-  final RideRequestController rideController = RideRequestController();
-  final RideMatchingController matchingController = RideMatchingController();
 
   @override
   void dispose() {
@@ -39,25 +42,95 @@ class _RequestRideViewState extends State<RequestRideView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: AppBar(
-        backgroundColor: Colors.white,
-      ),
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 90, 20, 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Request a Ride",
+              "Where to?",
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: Colors.black,
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            // PICKUP FIELD
+            Row(
+              children: [
+                _dot(Colors.green),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: CustomTextField(
+                    hint: "Pickup Location",
+                    controller: pickupController,
+                    readOnly: true,
+                    onTap: () => _openLocationSelector(true),
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 16),
 
+            // DROPOFF FIELD
+            Row(
+              children: [
+                _dot(Colors.red),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: CustomTextField(
+                    hint: "Drop-off Location",
+                    controller: dropoffController,
+                    readOnly: true,
+                    onTap: () => _openLocationSelector(false),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            const Text(
+              "Choose a ride",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                _genderButton("Females only"),
+                const SizedBox(width: 12),
+                _genderButton("Males only"),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            _carTypeCard(
+              title: "Rideshare Economy",
+              time: "2 min",
+              seats: "4",
+              isSelected: selectedCar == "economy",
+              onTap: () => setState(() => selectedCar = "economy"),
+            ),
+
+            _carTypeCard(
+              title: "Rideshare XL",
+              time: "5 min",
+              seats: "6",
+              isSelected: selectedCar == "XL",
+              onTap: () => setState(() => selectedCar = "XL"),
+            ),
+
+            const SizedBox(height: 30),
+
+            // 🔥 REQUEST BUTTON WITH REAL LOGIC
             Center(
               child: CustomButton(
                 text: "Request",
@@ -78,10 +151,11 @@ class _RequestRideViewState extends State<RequestRideView> {
     );
   }
 
-  // ---------------------- S3 + S4 ----------------------
-
+  // ---------------------------------------------------------
+  // SUBMIT RIDE → create request → save → go to WaitingView
+  // ---------------------------------------------------------
   Future<void> _submitRide() async {
-    final error = rideController.validateInputs(
+    final error = requestController.validateInputs(
       pickupAddress: pickupController.text,
       dropoffAddress: dropoffController.text,
       pickupLat: pickupLatLng?.latitude,
@@ -91,83 +165,63 @@ class _RequestRideViewState extends State<RequestRideView> {
     );
 
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
       return;
     }
 
-    final request = rideController.createRideRequest(
+    // 1. Create request object
+    final RideRequestModel request = requestController.createRequest(
       pickupAddress: pickupController.text,
       dropoffAddress: dropoffController.text,
       pickupLat: pickupLatLng!.latitude,
       pickupLng: pickupLatLng!.longitude,
       dropoffLat: dropoffLatLng!.latitude,
       dropoffLng: dropoffLatLng!.longitude,
-      riderId: "userID_here",
+      riderId: "userID_here", // replace later
+      requestID: requestController.generateRequestID(),
     );
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+    // 2. Save request to Firestore
+    await requestController.saveToFirebase(request);
+
+    // 3. Create chat room (optional)
+    FirebaseFirestore.instance
+        .collection("messages")
+        .doc(request.requestID)
+        .set({
+      "user1": request.riderId,
+      "user2": "",
+      "lastMessage": "",
+      "timestamp": DateTime.now(),
+    });
+
+    // 4. Navigate to WAITING SCREEN immediately
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WaitingView(requestId: request.requestID),
+      ),
     );
 
+    // 5. Start matching (no blocking UI)
     try {
-      await rideController.saveToFirebase(request);
-
-      // ⭐ STEP 2: إنشاء غرفة شات لكل رحلة
-      String roomId = request.requestId;
-
-      await FirebaseFirestore.instance
-          .collection("messages")
-          .doc(roomId)
-          .set({
-        "user1": request.riderId,
-        "user2": "",
-        "lastMessage": "",
-        "timestamp": DateTime.now(),
-      });
-
-      // ⭐ STEP 3: الذهاب لواجهة الانتظار وتمرير roomId
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => WaitingView(roomId: roomId),
-        ),
-      );
-
-      final List<DriverModel> matches =
-          await matchingController.findMatchesForRequest(request);
-
-      Navigator.pop(context);
-
-      if (matches.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No available drivers for this ride")),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Found ${matches.length} matching drivers")),
-        );
-      }
-
-      pickupController.clear();
-      dropoffController.clear();
-      pickupLatLng = null;
-      dropoffLatLng = null;
-      setState(() {});
-
+      await matchingController.handleFullRideFlow(request);
     } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error submitting request: $e")),
-      );
+      print("Matching failed: $e");
     }
+
+    // 6. Reset fields
+    pickupController.clear();
+    dropoffController.clear();
+    pickupLatLng = null;
+    dropoffLatLng = null;
+    setState(() {});
   }
 
-  // ---------------------- Location Selector ----------------------
-
+  // ---------------------------------------------------------
+  // LOCATION SELECTOR
+  // ---------------------------------------------------------
   Future<void> _openLocationSelector(bool isPickup) async {
     final result = await Navigator.push(
       context,
@@ -185,7 +239,89 @@ class _RequestRideViewState extends State<RequestRideView> {
       } else {
         dropoffController.text = result["address"];
         dropoffLatLng = result["latLng"];
-     }
-});
-}
+      }
+    });
+  }
+
+  // ---------------------------------------------------------
+  // UI ELEMENTS
+  // ---------------------------------------------------------
+
+  Widget _dot(Color color) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+
+  Widget _genderButton(String title) {
+    final bool isSelected = selectedGender == title;
+
+    return GestureDetector(
+      onTap: () => setState(() => selectedGender = title),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.black),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _carTypeCard({
+    required String title,
+    required String time,
+    required String seats,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.black : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.navigation, size: 40, color: Colors.black54),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.timer, size: 16),
+                    Text(" $time   "),
+                    const Icon(Icons.person, size: 16),
+                    Text(" $seats"),
+                  ],
+                )
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
 }

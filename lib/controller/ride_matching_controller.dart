@@ -1,88 +1,163 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:rideshare/model/driver_model.dart';
+import 'package:rideshare/model/ride_request_model.dart';
+import 'package:rideshare/controller/ride_controller.dart';
 
-import '../model/ride_request_model.dart';
-import '../model/driver_model.dart';
 
 class RideMatchingController {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const double maxPickupDistanceKm = 7.0;
 
-  static const double homeToCampusRadiusKm = 7.0;
+  final CollectionReference driversRef =
+      FirebaseFirestore.instance.collection("drivers");
 
-  double _distanceInKm(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
-    const double R = 6371;
-    final double dLat = (lat2 - lat1) * pi / 180;
-    final double dLon = (lon2 - lon1) * pi / 180;
+  final CollectionReference ridesRef =
+      FirebaseFirestore.instance.collection("rides");
 
-    final double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(lat1 * pi / 180) *
-            cos(lat2 * pi / 180) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
-
-    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return R * c;
+  // Convert Firestore GeoPoint -> LatLng
+  LatLng geoToLatLng(GeoPoint point) {
+    return LatLng(point.latitude, point.longitude);
   }
 
-  Future<List<DriverModel>> findMatchesForRequest(
-    RideRequestModel request,
-  ) async {
-    final query = await _firestore
-        .collection('drivers')
-        .where('direction', isEqualTo: request.direction)
-        .where('isAvailable', isEqualTo: true)
-        .get();
+  // Haversine distance
+  double calculateDistanceKm(LatLng a, LatLng b) {
+    const R = 6371;
+    final dLat = (b.latitude - a.latitude) * pi / 180;
+    final dLon = (b.longitude - a.longitude) * pi / 180;
 
-    final List<DriverModel> allDrivers = query.docs
-        .map((doc) => DriverModel.fromJson(doc.id, doc.data()))
-        .toList();
+    final lat1 = a.latitude * pi / 180;
+    final lat2 = b.latitude * pi / 180;
 
-    final List<_DriverWithDistance> filtered = [];
+    final aVal = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1) * cos(lat2) * sin(dLon / 2) * sin(dLon / 2);
 
-    for (final driver in allDrivers) {
-      double distance;
+    return R * 2 * atan2(sqrt(aVal), sqrt(1 - aVal));
+  }
 
-      if (request.direction == 'HomeToCampus') {
-        distance = _distanceInKm(
-          request.pickupLat,
-          request.pickupLng,
-          driver.startLat,
-          driver.startLng,
-        );
 
-        if (distance > homeToCampusRadiusKm) continue;
-      } else if (request.direction == 'CampusToHome') {
-        distance = _distanceInKm(
-          request.dropoffLat,
-          request.dropoffLng,
-          driver.startLat,
-          driver.startLng,
-        );
-      } else {
-        continue;
-      }
+  /// MAIN SUITABILITY CHECK LOGIC
 
-      filtered.add(
-        _DriverWithDistance(driver: driver, distance: distance),
-      );
+  bool isDriverSuitable({
+    required DriverModel driver,
+    required RideRequestModel request,
+    String? existingTripDropoffAddress,
+  }) {
+    // Must be available
+    if (!driver.isAvailable) return false;
+
+    // Must match ride direction ("HomeToCampus" / "CampusToHome")
+    if (driver.direction != request.direction) return false;
+
+    // Must have location
+    if (driver.location == null) return false;
+
+    final driverLatLng = geoToLatLng(driver.location!);
+    final studentPickupLatLng =
+        LatLng(request.pickupLat, request.pickupLng);
+
+
+    // A) HOME → CAMPUS  (apply 7 km rule)
+    
+    if (request.direction == "HomeToCampus") {
+      final distance = calculateDistanceKm(driverLatLng, studentPickupLatLng);
+      return distance <= maxPickupDistanceKm;
     }
 
-    filtered.sort((a, b) => a.distance.compareTo(b.distance));
-    return filtered.map((e) => e.driver).toList();
+    // B) CAMPUS → HOME (match dropoffAddress only)
+
+    if (request.direction == "CampusToHome") {
+      // First student for driver → ALWAYS accept
+      if (existingTripDropoffAddress == null ||
+          existingTripDropoffAddress.isEmpty) {
+        return true;
+      }
+
+      // Only accept if dropoffAddress 
+     return existingTripDropoffAddress.trim().toLowerCase() ==
+       request.dropoffAddress.trim().toLowerCase();
+
+    }
+
+    return false;
   }
+
+
+  /// FIREBASE: FIND DRIVER FOR REQUEST
+
+  Future<String?> matchDriverToStudent({
+    required RideRequestModel request,
+  }) async {
+    final driverDocs = await driversRef.get();
+
+    String? matchedDriver;
+
+    for (var doc in driverDocs.docs) {
+      final driver = DriverModel.fromMap(doc.data() as Map<String, dynamic>);
+
+      // Get driver's existing active ride (if any)
+      String? existingNeighborhood;
+
+      final rideDoc = await ridesRef.doc(driver.userID).get();
+      if (rideDoc.exists) {
+        existingNeighborhood = rideDoc["dropoffAddress"];
+      }
+
+      // Check suitability
+      final ok = isDriverSuitable(
+        driver: driver,
+        request: request,
+        existingTripDropoffAddress: existingNeighborhood,
+      );
+
+      if (ok) {
+        matchedDriver = driver.userID;
+        break;
+      }
+    }
+
+    return matchedDriver;
+  }
+
+Future<String> handleFullRideFlow(RideRequestModel request) async {
+  // 1) Save request to Firestore
+  await FirebaseFirestore.instance
+      .collection("ride_requests")
+      .doc(request.requestID)
+      .set(request.toMap());
+
+  // 2) Match a driver
+  final String? driverID = await matchDriverToStudent(request: request);
+
+  if (driverID == null) {
+    throw "No available drivers found";
+  }
+
+  // 3) Create the ride
+  final RideController rideController = RideController();
+
+  final String rideID = await rideController.createRide(
+    pickupLocation: GeoPoint(request.pickupLat, request.pickupLng),
+    pickupAddress: request.pickupAddress,
+    dropoffLocation: GeoPoint(request.dropoffLat, request.dropoffLng),
+    dropoffAddress: request.dropoffAddress,
+    direction: request.direction,
+    driverID: driverID,
+    studentIDs: [request.riderId],
+  );
+
+  // 4) Update request to notify WaitingView
+  await FirebaseFirestore.instance
+      .collection("ride_requests")
+      .doc(request.requestID)
+      .update({
+    "status": "matched",
+    "driverId": driverID,
+    "rideId": rideID,
+  });
+
+  return rideID;
 }
 
-class _DriverWithDistance {
-  final DriverModel driver;
-  final double distance;
 
-  _DriverWithDistance({
-    required this.driver,
-    required this.distance,
-});
 }

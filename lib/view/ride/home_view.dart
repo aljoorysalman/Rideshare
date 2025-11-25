@@ -29,7 +29,6 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
    final List<Widget> pages = [
   const _HomeContent(),
-  const CommunicationView(),
   const ProfileView(),
     ];
 

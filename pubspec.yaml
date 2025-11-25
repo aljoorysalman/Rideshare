@@ -24,7 +24,7 @@ dependencies:
   # Google Maps
   
   google_maps_flutter: any
-  location: ^5.0.0
+  
   flutter_polyline_points: ^3.0.1
   http: ^1.2.0
 

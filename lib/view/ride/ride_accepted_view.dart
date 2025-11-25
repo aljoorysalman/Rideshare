@@ -7,12 +7,12 @@ import 'package:rideshare/view/chat/chat_screen.dart';
 import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/view/ride/home_view.dart';
 import 'package:location/location.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rideshare/controller/emergency_controller.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rideshare/model/ride_model.dart';
 
 class AcceptedRideView extends StatefulWidget {
-  final String driverID;
+  final String driverID;      // identifying the ride
   final LatLng pickupLatLng;
 
   const AcceptedRideView({
@@ -26,230 +26,223 @@ class AcceptedRideView extends StatefulWidget {
 }
 
 class _AcceptedRideViewState extends State<AcceptedRideView> {
-  late String pickupPin;
-
-  @override
-  void initState() {
-    super.initState();
-    pickupPin = _generatePickupPin();
-  }
-
-  String _generatePickupPin() {
-    final random = DateTime.now().millisecondsSinceEpoch;
-    return (random % 9000 + 1000).toString();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: StreamBuilder<DriverModel?>(
-          stream: DriverController().streamDriver(widget.driverID),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection("rides")
+              .where("driverID", isEqualTo: widget.driverID)
+              .limit(1)
+              .snapshots(),
+          builder: (context, rideSnap) {
+            if (!rideSnap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (!snapshot.hasData || snapshot.data == null) {
-              return const Center(
-                child: Text("Driver data not available"),
-              );
+            if (rideSnap.data!.docs.isEmpty) {
+              return const Center(child: Text("No active ride found"));
             }
 
-            final driver = snapshot.data!;
+            // Convert Firestore -> RideModel
+            final rideDoc = rideSnap.data!.docs.first;
+            final ride = RideModel.fromMap(
+              rideDoc.id,
+              rideDoc.data() as Map<String, dynamic>,
+            );
 
-            return Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F3),
-                    borderRadius: BorderRadius.circular(32),
-                  ),
+            // Now stream driver
+            return StreamBuilder<DriverModel?>(
+              stream: DriverController().streamDriver(widget.driverID),
+              builder: (context, driverSnap) {
+                if (!driverSnap.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                final driver = driverSnap.data!;
 
-                    children: [
-                      // DRIVER HEADER
-                      Row(
+                return Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F3F3),
+                        borderRadius: BorderRadius.circular(32),
+                      ),
+
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // LEFT SIDE
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  driver.name,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-
-                                Row(
+                          // DRIVER HEADER
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(
-                                      Icons.star,
-                                      color: Colors.amber,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 4),
                                     Text(
-                                      driver.rating.toStringAsFixed(1),
+                                      driver.name,
                                       style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600,
                                       ),
+                                    ),
+
+                                    const SizedBox(height: 6),
+
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.star,
+                                            color: Colors.amber, size: 20),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          driver.rating.toStringAsFixed(1),
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 16),
+
+                                    Text(
+                                      "${driver.carModel} • ${driver.carColor} • ${driver.plateNumber}",
+                                      style: const TextStyle(fontSize: 17),
                                     ),
                                   ],
                                 ),
-
-                                const SizedBox(height: 16),
-
-                                Text(
-                                  "${driver.carModel} • ${driver.carColor} • ${driver.plateNumber}",
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(width: 20),
-
-                          // CALL + MESSAGE BTONS
-                          Column(
-                            children: [
-                              _circleButton(
-                                icon: Icons.call,
-                                onTap: () {},
                               ),
-                              const SizedBox(height: 12),
-                              _circleButton(
-                                icon: Icons.message_outlined,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ChatScreen(),
-                                    ),
-                                  );
-                                },
+
+                              const SizedBox(width: 20),
+
+                              Column(
+                                children: [
+                                  _circleButton(
+                                    icon: Icons.call,
+                                    onTap: () {},
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _circleButton(
+                                    icon: Icons.message_outlined,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ChatScreen(roomId: ""),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
 
-                      const SizedBox(height: 32),
+                          const SizedBox(height: 32),
 
-                      // PICKUP PIN
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD9D9D9),
-                            borderRadius: BorderRadius.circular(40),
-                          ),
-                          child: Text(
-                            "PickupPIN: $pickupPin",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                          // ✅ FIXED PICKUP PIN
+                          Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD9D9D9),
+                                borderRadius: BorderRadius.circular(40),
+                              ),
+                              child: Text(
+                                "Pickup PIN: ${ride.pickupPIN}",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+
+                          const SizedBox(height: 40),
+
+                          // SOS BUTTON
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: InkWell(
+                              onTap: _showEmergencyDialog,
+                              child: Container(
+                                width: 70,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.red.withOpacity(0.4),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    "SOS",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          Center(
+                            child: CustomButton(
+                              text: "Cancel ride",
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const HomeView()),
+                                );
+                              },
+                              isFullWidth: false,
+                              borderRadius: 30,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              color: Colors.black,
+                              textColor: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
-
-                      const SizedBox(height: 40),
-
-
-             
-           // EMERGENCY SOS BUTTON
-
-       Align(
-          alignment: Alignment.centerRight,       
-           child: InkWell(
-            onTap: () {
-              _showEmergencyDialog();
-             },
-         child: Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-           color: Colors.red,
-           shape: BoxShape.circle,
-            boxShadow: [
-             BoxShadow(
-             color: Colors.red.withOpacity(0.4),
-            blurRadius: 8,
-             spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: const Center(
-        child: Text(
-          "SOS",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-          ),
-        ),
-      ),
-    ),
-  ),
-),
-
-
-
-
-
-
-
-                      // CANCEL BUTTON
-                     Center(
-                       child: CustomButton(
-                         text: "Cancel ride",
-                           onPressed: () {
-                            Navigator.pushReplacement(
-                             context,
-                            MaterialPageRoute(builder: (_) => const HomeView()),
-                           );
-                         },
-                         isFullWidth: false,
-                         borderRadius: 30,
-                         padding: const EdgeInsets.symmetric(
-                             horizontal: 24,
-                             vertical: 12,
-                           ),
-                       color: Colors.black,
-                      textColor: Colors.white,
-                     ),
                     ),
-
-                    ],
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),
       ),
     );
   }
+
+  // ------------------------------
+  // WIDGET HELPERS
+  // ------------------------------
 
   static Widget _circleButton({
     required IconData icon,
@@ -264,44 +257,52 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Icon(
-            icon,
-            size: 22,
-            color: Colors.black,
-          ),
+          child: Icon(icon, size: 22, color: Colors.black),
         ),
       ),
     );
-
   }
 
-  void _showEmergencyDialog() {
+  // ------------------------------
+  // EMERGENCY DIALOG
+
+void _showEmergencyDialog() {
   showDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text("Emergency"),
-      content: Text(
-        "Are you sure you want to send an emergency alert?",
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("Cancel"),
+    barrierDismissible: false, // user must choose Cancel or Send
+    builder: (context) {
+      return AlertDialog(
+        title: const Text(
+          "Emergency",
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
+        content: const Text(
+          "Are you sure you want to send an emergency alert?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("Cancel"),
           ),
-          onPressed: () {
-            Navigator.pop(context);
-            _sendEmergencyAlert();
-          },
-          child: Text("Send SOS"),
-        ),
-      ],
-    ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _sendEmergencyAlert();
+            },
+            child: const Text("Send SOS"),
+          ),
+        ],
+      );
+    },
   );
 }
+
 Future<void> _sendEmergencyAlert() async {
   try {
     // Get student ID (from Firebase Auth)
@@ -341,6 +342,6 @@ Future<void> _sendEmergencyAlert() async {
   }
 }
 
+    }
+  
 
-
-}

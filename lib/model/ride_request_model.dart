@@ -1,4 +1,6 @@
+
 class RideRequestModel {
+  final String requestID;            // auto-generated doc ID
   final String pickupAddress;
   final String dropoffAddress;
 
@@ -8,12 +10,15 @@ class RideRequestModel {
   final double dropoffLat;
   final double dropoffLng;
 
-  final String direction; // "HomeToCampus" or "CampusToHome"
-  final String riderId;
+  final String direction;           // HomeToCampus / CampusToHome
+  final String riderId;             // student who requested
 
+  final String status;              // pending / matched / expired
+  final String driverId;            // filled when driver accepts
   final DateTime timestamp;
 
   RideRequestModel({
+    required this.requestID,
     required this.pickupAddress,
     required this.dropoffAddress,
     required this.pickupLat,
@@ -23,10 +28,14 @@ class RideRequestModel {
     required this.direction,
     required this.riderId,
     required this.timestamp,
+    this.status = "pending",
+    this.driverId = "",
   });
 
-  // Convert to JSON for Firebase
-  Map<String, dynamic> toJson() {
+
+  // TO FIREBASE
+
+  Map<String, dynamic> toMap() {
     return {
       "pickupAddress": pickupAddress,
       "dropoffAddress": dropoffAddress,
@@ -37,21 +46,27 @@ class RideRequestModel {
       "direction": direction,
       "riderId": riderId,
       "timestamp": timestamp.toIso8601String(),
+      "status": status,
+      "driverId": driverId,
     };
   }
 
-  // Convert from JSON (optional)
-  factory RideRequestModel.fromJson(Map<String, dynamic> json) {
+  // FROM FIREBASE
+
+  factory RideRequestModel.fromMap(String id, Map<String, dynamic> map) {
     return RideRequestModel(
-      pickupAddress: json["pickupAddress"],
-      dropoffAddress: json["dropoffAddress"],
-      pickupLat: (json["pickupLat"] as num).toDouble(),
-      pickupLng: (json["pickupLng"] as num).toDouble(),
-      dropoffLat: (json["dropoffLat"] as num).toDouble(),
-      dropoffLng: (json["dropoffLng"] as num).toDouble(),
-      direction: json["direction"],
-      riderId: json["riderId"],
-      timestamp: DateTime.parse(json["timestamp"]),
-);
-}
+      requestID: id,
+      pickupAddress: map["pickupAddress"] ?? "",
+      dropoffAddress: map["dropoffAddress"] ?? "",
+      pickupLat: (map["pickupLat"] as num).toDouble(),
+      pickupLng: (map["pickupLng"] as num).toDouble(),
+      dropoffLat: (map["dropoffLat"] as num).toDouble(),
+      dropoffLng: (map["dropoffLng"] as num).toDouble(),
+      direction: map["direction"] ?? "",
+      riderId: map["riderId"] ?? "",
+      timestamp: DateTime.parse(map["timestamp"]),
+      status: map["status"] ?? "pending",
+      driverId: map["driverId"] ?? "",
+    );
+  }
 }
