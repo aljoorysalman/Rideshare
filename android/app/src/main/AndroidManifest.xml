@@ -18,11 +18,17 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
+        <!--  Firebase Required Meta-Data -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="default" />
+            
         <!--  Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDr_IX_3RmM2F_oKbftY7ifgfxiFrDjOcE" />
 
+        <!-- Flutter Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -49,5 +55,12 @@
             android:value="2" />
 
     </application>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
 
 </manifest>
