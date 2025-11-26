@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ← الباك اند
+import '../controller/rating_controller.dart';
 
 class RatingPage extends StatefulWidget {
   const RatingPage({super.key});
@@ -9,10 +9,11 @@ class RatingPage extends StatefulWidget {
 }
 
 class _RatingPageState extends State<RatingPage> {
-  int selectedStars = 0; 
+  int selectedStars = 0;
   final TextEditingController feedbackController = TextEditingController();
 
-  
+  final RatingController ratingController = RatingController();
+
   Future<void> submitRating() async {
     if (selectedStars == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -21,26 +22,23 @@ class _RatingPageState extends State<RatingPage> {
       return;
     }
 
-    try {
-      await FirebaseFirestore.instance.collection('ratings').add({
-        'stars': selectedStars,
-        'feedback': feedbackController.text.trim(),
-        'driverID': 'driver123', 
-        'userID': 'user123',     
-        'createdAt': Timestamp.now(),
-      });
+    final error = await ratingController.submitRating(
+      stars: selectedStars,
+      feedback: feedbackController.text.trim(),
+    );
 
+    if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Thank you for your feedback!")),
+        SnackBar(content: Text(error)),
       );
-
-      Navigator.pop(context); 
-
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      return;
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Thank you for your feedback!")),
+    );
+
+    Navigator.pop(context);
   }
 
   @override
@@ -104,7 +102,7 @@ class _RatingPageState extends State<RatingPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: submitRating, 
+                  onPressed: submitRating,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
