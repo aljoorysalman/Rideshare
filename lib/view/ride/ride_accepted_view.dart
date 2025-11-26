@@ -3,17 +3,17 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:rideshare/controller/driver_controller.dart';
 import 'package:rideshare/model/driver_model.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
-import 'package:rideshare/view/chat/chat_screen.dart';
-import 'package:rideshare/view/widgets/custom_button.dart';
-import 'package:rideshare/view/ride/home_view.dart';
+import 'package:rideshare/view/chat/chat_view.dart';
+import'package:rideshare/view/widgets/cancel_button.dart';
 import 'package:location/location.dart';
 import 'package:rideshare/controller/emergency_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rideshare/model/ride_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AcceptedRideView extends StatefulWidget {
-  final String driverID;      // identifying the ride
-  final LatLng pickupLatLng;
+  final String driverID;      // The ID of the driver for this ride
+  final LatLng pickupLatLng; // The pickup location coordinates
 
   const AcceptedRideView({
     super.key,
@@ -31,6 +31,7 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        //  FIRST STREAM: Listen to the ride document in Firestore in real time
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection("rides")
@@ -38,29 +39,33 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
               .limit(1)
               .snapshots(),
           builder: (context, rideSnap) {
+            // If data is still loading then show spinner
             if (!rideSnap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
+            // If no ride exists → show message
             if (rideSnap.data!.docs.isEmpty) {
               return const Center(child: Text("No active ride found"));
             }
 
-            // Convert Firestore -> RideModel
+            // Convert the Firestore document into a RideModel object
             final rideDoc = rideSnap.data!.docs.first;
             final ride = RideModel.fromMap(
               rideDoc.id,
               rideDoc.data() as Map<String, dynamic>,
             );
 
-            // Now stream driver
+            //  SECOND STREAM: Listen to driver’s live data (location, name, etc.)
             return StreamBuilder<DriverModel?>(
               stream: DriverController().streamDriver(widget.driverID),
               builder: (context, driverSnap) {
                 if (!driverSnap.hasData) {
+                  // Still loading → show spinner
                   return const Center(child: CircularProgressIndicator());
                 }
 
+                // Driver data is available
                 final driver = driverSnap.data!;
 
                 return Center(
@@ -74,11 +79,12 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
                         borderRadius: BorderRadius.circular(32),
                       ),
 
+                      // MAIN CONTENT
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // DRIVER HEADER
+                          // DRIVER info
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -95,7 +101,7 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
                                     ),
 
                                     const SizedBox(height: 6),
-
+                                    // Driver rating row
                                     Row(
                                       children: [
                                         const Icon(Icons.star,
@@ -112,7 +118,7 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
                                     ),
 
                                     const SizedBox(height: 16),
-
+                                    // Car information
                                     Text(
                                       "${driver.carModel} • ${driver.carColor} • ${driver.plateNumber}",
                                       style: const TextStyle(fontSize: 17),
@@ -122,7 +128,7 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
                               ),
 
                               const SizedBox(width: 20),
-
+                              // Right side: call + message buttons
                               Column(
                                 children: [
                                   _circleButton(
@@ -130,17 +136,25 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
                                     onTap: () {},
                                   ),
                                   const SizedBox(height: 12),
-                                  _circleButton(
-                                    icon: Icons.message_outlined,
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const ChatScreen(roomId: ""),
-                                        ),
-                                      );
-                                    },
+                                 _circleButton(
+                                  icon: Icons.message_outlined,
+                                  onTap: () {
+                                   final studentID = FirebaseAuth.instance.currentUser!.uid;
+                                   final driverID = widget.driverID;
+
+                             // Sort IDs alphabetically so room ID is stable
+                             final List<String> ids = [studentID, driverID]..sort();
+                             final roomId = "${ids[0]}_${ids[1]}";
+
+                               Navigator.push(
+                                 context,
+                                  MaterialPageRoute(
+                                  builder: (_) => ChatView(roomId: roomId),
                                   ),
+                                );
+                                },
+                             ),
+
                                 ],
                               ),
                             ],
@@ -148,7 +162,7 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
 
                           const SizedBox(height: 32),
 
-                          // ✅ FIXED PICKUP PIN
+                          // PICKUP PIN
                           Center(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -175,7 +189,7 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: InkWell(
-                              onTap: _showEmergencyDialog,
+                              onTap: () => _showEmergencyDialog(rideDoc.id),
                               child: Container(
                                 width: 70,
                                 height: 70,
@@ -205,28 +219,11 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
                             ),
                           ),
 
-                          const SizedBox(height: 32),
+                     const SizedBox(height: 32),
+                      Center(child:  CancelButton( id: rideDoc.id, isRide: true,),
+                      ),
+                   
 
-                          Center(
-                            child: CustomButton(
-                              text: "Cancel ride",
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const HomeView()),
-                                );
-                              },
-                              isFullWidth: false,
-                              borderRadius: 30,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              color: Colors.black,
-                              textColor: Colors.white,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -239,10 +236,6 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
       ),
     );
   }
-
-  // ------------------------------
-  // WIDGET HELPERS
-  // ------------------------------
 
   static Widget _circleButton({
     required IconData icon,
@@ -263,85 +256,77 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
     );
   }
 
-  // ------------------------------
   // EMERGENCY DIALOG
-
-void _showEmergencyDialog() {
-  showDialog(
-    context: context,
-    barrierDismissible: false, // user must choose Cancel or Send
-    builder: (context) {
-      return AlertDialog(
-        title: const Text(
-          "Emergency",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          "Are you sure you want to send an emergency alert?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text("Cancel"),
+  void _showEmergencyDialog(String rideID) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // user must choose Cancel or Send
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            "Emergency",
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+          content: const Text(
+            "Are you sure you want to send an emergency alert?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Cancel"),
             ),
-            onPressed: () {
-              Navigator.pop(context);
-              _sendEmergencyAlert();
-            },
-            child: const Text("Send SOS"),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Future<void> _sendEmergencyAlert() async {
-  try {
-    // Get student ID (from Firebase Auth)
-   // final studentID = FirebaseAuth.instance.currentUser!.uid;
-   final studentID = "STU001";
-
-
-    // Get current location
-    LocationData loc = await Location().getLocation();
-    LatLng currentLocation = LatLng(loc.latitude!, loc.longitude!);
-
-    // Trigger emergency using your service
-    await EmergencyController().triggerEmergency(
-      studentID: studentID,
-      driverID: widget.driverID, // passed from AcceptedRideView
-      rideID: "RIDE_123",        // replace with actual ride ID
-      location: currentLocation,
-    );
-
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("SOS triggered! Calling emergency contact..."),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
-
-  } catch (e) {
-    // Show error
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Failed to send SOS: $e"),
-        backgroundColor: Colors.red,
-      ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                _sendEmergencyAlert(rideID); // FIXED
+              },
+              child: const Text("Send SOS"),
+            ),
+          ],
+        );
+      },
     );
   }
-}
 
+  Future<void> _sendEmergencyAlert(String rideID) async {
+    try {
+      // Get student ID (from Firebase Auth)
+      final studentID = FirebaseAuth.instance.currentUser!.uid;
+
+      // Get current location
+      LocationData loc = await Location().getLocation();
+      LatLng currentLocation = LatLng(loc.latitude!, loc.longitude!);
+
+      // Trigger emergency using  service
+      await EmergencyController().triggerEmergency(
+        studentID: studentID,
+        driverID: widget.driverID, // passed from AcceptedRideView
+        rideID: rideID,
+        location: currentLocation,
+      );
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("SOS triggered! Calling emergency contact..."),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      // Show error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to send SOS: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-  
-
+  }
+}

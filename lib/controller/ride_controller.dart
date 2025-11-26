@@ -10,9 +10,9 @@ class RideController {
     return 1000 + Random().nextInt(9000);
   }
 
-  // ---------------------------------------------------------
+  //
   // CREATE RIDE AFTER MATCH
-  // ---------------------------------------------------------
+  
   Future<String> createRide({
     required GeoPoint pickupLocation,
     required String pickupAddress,
@@ -84,5 +84,12 @@ class RideController {
     });
   }
 
+Future<void> cancelRide(String rideID, String cancelledBy) async {
+    await _firestore.collection("rides").doc(rideID).update({
+      "status": "cancelled",
+      "cancelledBy": cancelledBy,
+      "cancelledAt": Timestamp.now(),
+    });
+  }
 
 }

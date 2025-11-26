@@ -4,7 +4,6 @@ import 'package:rideshare/view/ride/request_ride_view.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
 import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/view/widgets/bottom_nav_bar.dart';
-import 'package:rideshare/view/chat/communication_view.dart';
 import 'package:rideshare/view/profile/profile_view.dart';
 import 'package:rideshare/view/ride/reserve_ride_view.dart';
 

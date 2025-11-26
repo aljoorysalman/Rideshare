@@ -16,7 +16,6 @@ class RideRequestController {
   static const double femaleCampusLat = 24.836630;
   static const double femaleCampusLng = 46.727420;
 
-  
   // HAVERSINE
 
   double _distanceInKm(double lat1, double lon1, double lat2, double lon2) {
@@ -122,6 +121,14 @@ class RideRequestController {
         .collection("ride_requests")
         .doc(request.requestID)
         .set(request.toMap());
+  }
+
+
+   Future<void> cancelRequest(String requestID) async {
+    await _firestore.collection("ride_requests").doc(requestID).update({
+      "status": "cancelled",
+      "cancelledAt": Timestamp.now(),
+    });
   }
 }
 

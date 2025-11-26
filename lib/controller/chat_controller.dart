@@ -1,16 +1,41 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/chat_message.dart';
 
 class ChatController {
- List<ChatMessage> messages = [
-  ChatMessage(text: 'Hi, are you in the way?', isMe: true),
-  ChatMessage(text: 'Yes, I am 5 minutes away.', isMe: false),
-];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  void sendMessage(String text, bool isMe) {
+  // roomId is: driverID + "_" + studentID
+  final String roomId;
+
+  ChatController({required this.roomId});
+
+  /// Send new chat message
+  Future<void> sendMessage(String text, bool isMe) async {
     if (text.trim().isEmpty) return;
 
-    messages.add(
-      ChatMessage(text: text, isMe: isMe),
-    );
+    await _firestore
+        .collection("chat_rooms")
+        .doc(roomId)
+        .collection("messages")
+        .add({
+      "text": text,
+      "isMe": isMe,
+      "timestamp": FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Listen to messages in real-time
+  Stream<List<ChatMessage>> getMessagesStream() {
+    return _firestore
+        .collection("chat_rooms")
+        .doc(roomId)
+        .collection("messages")
+        .orderBy("timestamp", descending: false)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ChatMessage.fromMap(doc.data()))
+          .toList();
+    });
   }
 }
