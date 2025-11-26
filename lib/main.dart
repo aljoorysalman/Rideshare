@@ -7,6 +7,10 @@ import 'view/splashview.dart';
 import 'view/dashboard_page.dart';
 import 'view/register_page.dart';
 import 'view/verify_page.dart';
+import 'view/payment_page.dart';
+import 'view/rating_page.dart';
+
+
 
 
 
@@ -29,12 +33,15 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      home: SplashView(),
+     home: SplashView(),
+
 
       routes: {
   '/login': (context) => const LoginPage(),
   '/register': (context) => const RegisterPage(),
   '/verify': (context) => const VerifyPage(),
+  '/payment': (context) => const PaymentPage(),
+  '/rating': (context) => const RatingPage(),
   '/dashboard': (context) => const DashboardPage(),
 },
 
