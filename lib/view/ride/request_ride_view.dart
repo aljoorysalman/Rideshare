@@ -4,11 +4,10 @@ import 'package:rideshare/view/widgets/custom_textfield.dart';
 import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/view/ride/select_location_view.dart';
 import 'package:rideshare/view/ride/waiting_view.dart';
-
 import 'package:rideshare/controller/ride_request_controller.dart';
 import 'package:rideshare/controller/ride_matching_controller.dart';
 import 'package:rideshare/model/ride_request_model.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RequestRideView extends StatefulWidget {
@@ -30,7 +29,6 @@ class _RequestRideViewState extends State<RequestRideView> {
   final RideMatchingController matchingController = RideMatchingController();
 
   String selectedGender = "Females only";
-  String selectedCar = "economy";
 
   @override
   void dispose() {
@@ -110,27 +108,12 @@ class _RequestRideViewState extends State<RequestRideView> {
               ],
             ),
 
-            const SizedBox(height: 30),
 
-            _carTypeCard(
-              title: "Rideshare Economy",
-              time: "2 min",
-              seats: "4",
-              isSelected: selectedCar == "economy",
-              onTap: () => setState(() => selectedCar = "economy"),
-            ),
-
-            _carTypeCard(
-              title: "Rideshare XL",
-              time: "5 min",
-              seats: "6",
-              isSelected: selectedCar == "XL",
-              onTap: () => setState(() => selectedCar = "XL"),
-            ),
+  
 
             const SizedBox(height: 30),
 
-            // 🔥 REQUEST BUTTON WITH REAL LOGIC
+            //  REQUEST BUTTON 
             Center(
               child: CustomButton(
                 text: "Request",
@@ -151,9 +134,8 @@ class _RequestRideViewState extends State<RequestRideView> {
     );
   }
 
-  // ---------------------------------------------------------
   // SUBMIT RIDE → create request → save → go to WaitingView
-  // ---------------------------------------------------------
+  
   Future<void> _submitRide() async {
     final error = requestController.validateInputs(
       pickupAddress: pickupController.text,
@@ -178,7 +160,7 @@ class _RequestRideViewState extends State<RequestRideView> {
       pickupLng: pickupLatLng!.longitude,
       dropoffLat: dropoffLatLng!.latitude,
       dropoffLng: dropoffLatLng!.longitude,
-      riderId: "userID_here", // replace later
+      riderId: FirebaseAuth.instance.currentUser!.uid,
       requestID: requestController.generateRequestID(),
     );
 
@@ -219,9 +201,8 @@ class _RequestRideViewState extends State<RequestRideView> {
     setState(() {});
   }
 
-  // ---------------------------------------------------------
+  
   // LOCATION SELECTOR
-  // ---------------------------------------------------------
   Future<void> _openLocationSelector(bool isPickup) async {
     final result = await Navigator.push(
       context,
@@ -243,9 +224,7 @@ class _RequestRideViewState extends State<RequestRideView> {
     });
   }
 
-  // ---------------------------------------------------------
   // UI ELEMENTS
-  // ---------------------------------------------------------
 
   Widget _dot(Color color) {
     return Container(
@@ -278,50 +257,4 @@ class _RequestRideViewState extends State<RequestRideView> {
     );
   }
 
-  Widget _carTypeCard({
-    required String title,
-    required String time,
-    required String seats,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.black : Colors.transparent,
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.navigation, size: 40, color: Colors.black54),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.timer, size: 16),
-                    Text(" $time   "),
-                    const Icon(Icons.person, size: 16),
-                    Text(" $seats"),
-                  ],
-                )
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
 }

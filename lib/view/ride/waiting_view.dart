@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gap/gap.dart';
+import'package:rideshare/view/widgets/cancel_button.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
-import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/view/ride/ride_accepted_view.dart';
 
+
+
 class WaitingView extends StatefulWidget {
-  final String requestId;
+  final String requestId; // ID of the ride request in Firestore
 
   const WaitingView({super.key, required this.requestId});
 
@@ -31,7 +33,8 @@ class _WaitingViewState extends State<WaitingView>
       duration: const Duration(milliseconds: 1000),
     )..repeat();
 
-    // Listen to ride request changes → navigate when matched
+    // Listen to ride request changes  navigate when matched
+    //Listen to Firestore request updates (real-time)
     FirebaseFirestore.instance
         .collection("ride_requests")
         .doc(widget.requestId)
@@ -42,7 +45,8 @@ class _WaitingViewState extends State<WaitingView>
       final data = snapshot.data()!;
       final status = data["status"];
 
-      /// When controller finishes matching a driver:
+      
+      // If a driver accepts  navigate to AcceptedRide screen
       if (status == "matched") {
         final driverId = data["driverId"];
         final pickupLat = data["pickupLat"];
@@ -59,7 +63,7 @@ class _WaitingViewState extends State<WaitingView>
         );
       }
 
-      /// If request rejected (rare case)
+        // If request is rejected (driver unavailable)  go back to home
       if (status == "rejected") {
         Navigator.pop(context);
       }
@@ -68,13 +72,13 @@ class _WaitingViewState extends State<WaitingView>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.dispose(); // Stop animation when leaving screen
     super.dispose();
   }
 
-  // -----------------------------------------------------------
-  // PULSING DOT
-  // -----------------------------------------------------------
+  
+  
+  // Builds a single pulsing dot in the circular animation
   Widget _buildPulsingDot(int index) {
     final double angle = (index * 45) * pi / 180;
     const double radius = 30;
@@ -97,9 +101,9 @@ class _WaitingViewState extends State<WaitingView>
     );
   }
 
-  // -----------------------------------------------------------
-  // UI
-  // -----------------------------------------------------------
+
+  // main UI
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,7 +141,7 @@ class _WaitingViewState extends State<WaitingView>
                 Icon(Icons.navigation, color: AppColors.greyBackground, size: 22),
                 SizedBox(width: 8),
                 Text(
-                  "Searching within 7 km",
+                  "Searching within 7 km",  // Shows radius limit (7 km)
                   style: TextStyle(
                     fontSize: 15,
                     color: AppColors.greyBackground,
@@ -148,15 +152,11 @@ class _WaitingViewState extends State<WaitingView>
 
             const SizedBox(height: 40),
 
-            CustomButton(
-              text: "Cancel ride",
-              onPressed: () => Navigator.pop(context),
-              isFullWidth: false,
-              borderRadius: 30,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              color: Colors.black,
-              textColor: Colors.white,
-            ),
+         const SizedBox(height: 32),
+         // Cancel request button (cancels only ride_request)
+                Center(child: CancelButton(id: widget.requestId, isRide: false,),),
+
+
 
             const SizedBox(height: 20),
           ],
