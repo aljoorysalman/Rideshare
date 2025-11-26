@@ -8,24 +8,33 @@ environment:
   sdk: ^3.9.2
 
 dependencies:
+  location: ^5.0.0
   flutter:
     sdk: flutter
 
-  # UI & Icons
-  cupertino_icons: ^1.0.8
-  gap: ^3.0.1
-  flutter_svg: ^2.0.7
-  vector_graphics: ^1.1.7
+# UI & Icons
+cupertino_icons: ^1.0.8
+gap: ^3.0.1
+flutter_svg: ^2.0.9
+vector_graphics: ^1.1.7
 
-  # Maps & Location
-  google_maps_flutter: ^2.6.1
-  geocoding: ^3.0.0
-  geolocator: ^12.0.0
+# Maps & Location
+google_maps_flutter: ^2.6.1
+geocoding: ^3.0.0
+geolocator: ^12.0.0
 
-  # Firebase (Web + Mobile compatible)
-  firebase_core: ^3.8.0
-  firebase_auth: ^5.3.2
-  cloud_firestore: ^5.4.4
+# Firebase (Web + Mobile compatible)
+firebase_core: ^3.8.0
+firebase_auth: ^5.3.2
+cloud_firestore: ^5.4.4
+
+# Google Maps Helpers
+flutter_polyline_points: ^3.0.1
+http: ^1.2.0
+
+# Optional extras
+url_launcher: ^6.3.0
+
 
 dev_dependencies:
   flutter_test:
@@ -33,7 +42,6 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
-
   uses-material-design: true
 
   assets:

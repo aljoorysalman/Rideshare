@@ -1,11 +1,18 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gap/gap.dart';
-import 'package:rideshare/view/widgets/custom_button.dart';
+import'package:rideshare/view/widgets/cancel_button.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
+import 'package:rideshare/view/ride/ride_accepted_view.dart';
+
+
 
 class WaitingView extends StatefulWidget {
-  const WaitingView({super.key});
+  final String requestId; // ID of the ride request in Firestore
+
+  const WaitingView({super.key, required this.requestId});
 
   @override
   State<WaitingView> createState() => _WaitingViewState();
@@ -13,23 +20,90 @@ class WaitingView extends StatefulWidget {
 
 class _WaitingViewState extends State<WaitingView>
     with SingleTickerProviderStateMixin {
+
   late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
+
+    // Animation for pulsing dots
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..repeat();
+
+    // Listen to ride request changes  navigate when matched
+    //Listen to Firestore request updates (real-time)
+    FirebaseFirestore.instance
+        .collection("ride_requests")
+        .doc(widget.requestId)
+        .snapshots()
+        .listen((snapshot) {
+      if (!snapshot.exists) return;
+
+      final data = snapshot.data()!;
+      final status = data["status"];
+
+      
+      // If a driver accepts  navigate to AcceptedRide screen
+      if (status == "matched") {
+        final driverId = data["driverId"];
+        final pickupLat = data["pickupLat"];
+        final pickupLng = data["pickupLng"];
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AcceptedRideView(
+              driverID: driverId,
+              pickupLatLng: LatLng(pickupLat, pickupLng),
+            ),
+          ),
+        );
+      }
+
+        // If request is rejected (driver unavailable)  go back to home
+      if (status == "rejected") {
+        Navigator.pop(context);
+      }
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.dispose(); // Stop animation when leaving screen
     super.dispose();
   }
 
+  
+  
+  // Builds a single pulsing dot in the circular animation
+  Widget _buildPulsingDot(int index) {
+    final double angle = (index * 45) * pi / 180;
+    const double radius = 30;
+
+    double fade = (sin(_controller.value * 2 * pi + index * 0.7) + 1) / 2;
+
+    return Transform.translate(
+      offset: Offset(radius * cos(angle), radius * sin(angle)),
+      child: Opacity(
+        opacity: fade * 0.9 + 0.1,
+        child: Container(
+          width: 12,
+          height: 12,
+          decoration: const BoxDecoration(
+            color: Colors.black,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  // main UI
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,31 +112,20 @@ class _WaitingViewState extends State<WaitingView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // pulsing circular dots
+            // Pulsing dots animation
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: Stack(
+                alignment: Alignment.center,
+                children: List.generate(8, (i) => _buildPulsingDot(i)),
+              ),
+            ),
 
-   const SizedBox(height: 20),
-  SizedBox(
-   width: 90,
-   height: 90,
-  child: AnimatedBuilder(
-    animation: _controller,
-    builder: (_, __) {
-      return Center(
-        child: Stack(
-          alignment: Alignment.center,
-            children: List.generate(8, _buildPulsingDot),
-        ),
-      );
-    },
-  ),
-),
+            const Gap(40),
 
-    
-
-     Gap(20),
-
-      const Text(
-              "Looking for a driver nearby",
+            const Text(
+              "Looking for a driver nearby...",
               style: TextStyle(
                 fontSize: 16,
                 color: AppColors.greyBackground,
@@ -78,54 +141,27 @@ class _WaitingViewState extends State<WaitingView>
                 Icon(Icons.navigation, color: AppColors.greyBackground, size: 22),
                 SizedBox(width: 8),
                 Text(
-                  "Searching within 7 km",
-                  style: TextStyle(fontSize: 15, color:AppColors.greyBackground,),
+                  "Searching within 7 km",  // Shows radius limit (7 km)
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.greyBackground,
+                  ),
                 ),
               ],
             ),
 
             const SizedBox(height: 40),
 
-            CustomButton(
-              text: "Cancel ride",
-              onPressed: () => Navigator.pop(context),
-              isFullWidth: false,
-              borderRadius: 30,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
-              color: Colors.black,
-              textColor: Colors.white,
-            ),
+         const SizedBox(height: 32),
+         // Cancel request button (cancels only ride_request)
+                Center(child: CancelButton(id: widget.requestId, isRide: false,),),
+
+
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
-
-  // Pulsing dot around the circle
-  Widget _buildPulsingDot(int index) {
-    final double angle = (index * 45) * pi / 180;
-    final double radius = 30;
-
-    // phase shift for smooth wave motion
-    double fade = (sin(_controller.value * 2 * pi + index * 0.7) + 1) / 2;
-
-    return Transform.translate(
-      offset: Offset(radius * cos(angle), radius * sin(angle)),
-      child: Opacity(
-        opacity: fade * 0.9 + 0.1, // soft fade
-        child: Container(
-          width: 12,
-          height: 12,
-          decoration: const BoxDecoration(
-            color: Colors.black,
-            shape: BoxShape.circle,
-          ),
-        ),
-      ),
-    );
-  }
 }
-

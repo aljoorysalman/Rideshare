@@ -6,9 +6,9 @@ class CustomButton extends StatelessWidget {
   final VoidCallback onPressed;    
   final Color? color;              
   final Color? textColor;          
-  final bool isFullWidth;          // NEW
-  final double borderRadius;       // NEW
-  final EdgeInsetsGeometry? padding; // NEW
+  final bool isFullWidth;         
+  final double borderRadius;       
+  final EdgeInsetsGeometry? padding; 
 
   const CustomButton({
     super.key,

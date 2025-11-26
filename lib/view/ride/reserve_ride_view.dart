@@ -14,7 +14,7 @@ class ReserveRideView extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
           onPressed: () {
-            Navigator.pop(context); // 👈 go back to previous page
+            Navigator.pop(context); //  go back to previous page
           },
         ),
       ),    
