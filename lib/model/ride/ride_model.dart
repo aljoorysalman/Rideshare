@@ -7,7 +7,7 @@ class RideModel {
   final String pickupAddress;
 
   final GeoPoint dropoffLocation;
-  final String dropoffAddress;      // REQUIRED for Campus→Home grouping
+  final String dropoffAddress;      // REQUIRED for Campus to Home grouping
 
   final String direction;           // HomeToCampus / CampusToHome
 
@@ -35,7 +35,7 @@ class RideModel {
     required this.studentIDs,
   });
 
-  // ----------------------- FROM FIRESTORE -----------------------
+  //  FROM FIRESTORE 
   factory RideModel.fromMap(String id, Map<String, dynamic> map) {
     return RideModel(
       rideID: id,
@@ -61,7 +61,7 @@ class RideModel {
     );
   }
 
-  // ----------------------- TO FIRESTORE -----------------------
+  //  TO FIRESTORE 
   Map<String, dynamic> toMap() {
     return {
       'pickupLocation': pickupLocation,

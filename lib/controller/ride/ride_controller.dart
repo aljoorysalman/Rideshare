@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:rideshare/model/ride_model.dart';
+import 'package:rideshare/model/ride/ride_model.dart';
 
 class RideController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -16,7 +16,7 @@ class RideController {
   Future<String> createRide({
     required GeoPoint pickupLocation,
     required String pickupAddress,
-
+    
     required GeoPoint dropoffLocation,
     required String dropoffAddress,
 
@@ -42,7 +42,8 @@ class RideController {
       pickupPIN: generatePickupPIN(),
 
       driverID: driverID,
-      studentIDs: studentIDs,
+      studentIDs: studentIDs, 
+
     );
 
     await _firestore.collection("rides").doc(rideID).set(ride.toMap());

@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD:lib/view/ride/rating_page.dart
+import '../../controller/ride/rating_controller.dart';
+import 'package:rideshare/model/ride/ride_model.dart';
+import 'package:rideshare/model/users/driver_model.dart';
+=======
 import '../controller/rating_controller.dart';
+>>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/rating_page.dart
 
 class RatingPage extends StatefulWidget {
-  const RatingPage({super.key});
+  final RideModel ride;
+  final DriverModel driver;
+
+  const RatingPage({
+    super.key,
+    required this.ride,
+    required this.driver,
+  });
 
   @override
   State<RatingPage> createState() => _RatingPageState();
@@ -22,6 +35,19 @@ class _RatingPageState extends State<RatingPage> {
       return;
     }
 
+<<<<<<< HEAD:lib/view/ride/rating_page.dart
+    final success = await ratingController.handleDriverRating(
+        driverId: widget.driver.userID,          // from DriverModel
+       rideId: widget.ride.rideID,              // from RideModel
+      rating: selectedStars.toDouble(),
+    feedback: feedbackController.text.trim(),
+);
+
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Something went wrong, try again.")),
+=======
     final error = await ratingController.submitRating(
       stars: selectedStars,
       feedback: feedbackController.text.trim(),
@@ -30,6 +56,7 @@ class _RatingPageState extends State<RatingPage> {
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error)),
+>>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/rating_page.dart
       );
       return;
     }

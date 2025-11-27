@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:rideshare/model/driver_model.dart';
+import 'package:rideshare/model/users/driver_model.dart';
 
 class DriverController { 
 

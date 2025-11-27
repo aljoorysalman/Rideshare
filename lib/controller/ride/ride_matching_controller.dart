@@ -1,9 +1,9 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:rideshare/model/driver_model.dart';
-import 'package:rideshare/model/ride_request_model.dart';
-import 'package:rideshare/controller/ride_controller.dart';
+import 'package:rideshare/model/users/driver_model.dart';
+import 'package:rideshare/model/ride/ride_request_model.dart';
+import 'package:rideshare/controller/ride/ride_controller.dart';
 
 
 class RideMatchingController {

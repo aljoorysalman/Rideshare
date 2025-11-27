@@ -15,7 +15,10 @@ class DriverModel {
 
   final bool isAvailable;          // required for matching
   final String direction;          // HomeToCampus / CampusToHome
-  final double rating;
+
+  final double averageRating;
+  final double totalRating;
+  final int ratingCount;
 
   final GeoPoint? location;        // live location
   final String? currentTripID;     // ride assigned to driver
@@ -33,12 +36,13 @@ class DriverModel {
     required this.plateNumber,
     required this.isAvailable,
     required this.direction,
-    required this.rating,
+    this.averageRating = 0.0,
+    this.totalRating = 0.0,
+    this.ratingCount = 0,
     this.location,
     this.currentTripID,
   });
 
-// FROM FIRESTORE
   factory DriverModel.fromMap(Map<String, dynamic> map) {
     return DriverModel(
       userID: map['userID'] ?? '',
@@ -53,13 +57,14 @@ class DriverModel {
       plateNumber: map['plateNumber'] ?? '',
       isAvailable: map['isAvailable'] ?? true,
       direction: map['direction'] ?? '',
-      rating: (map['rating'] ?? 0).toDouble(),
+      averageRating: (map['averageRating'] ?? 0).toDouble(),
+      totalRating: (map['totalRating'] ?? 0).toDouble(),
+      ratingCount: (map['ratingCount'] ?? 0).toInt(),
       location: map['location'],
       currentTripID: map['currentTripID'],
     );
   }
 
-  // TO FIRESTORE
   Map<String, dynamic> toMap() {
     return {
       'userID': userID,
@@ -74,7 +79,9 @@ class DriverModel {
       'plateNumber': plateNumber,
       'isAvailable': isAvailable,
       'direction': direction,
-      'rating': rating,
+      'averageRating': averageRating,
+      'totalRating': totalRating,
+      'ratingCount': ratingCount,
       'location': location,
       'currentTripID': currentTripID,
     };

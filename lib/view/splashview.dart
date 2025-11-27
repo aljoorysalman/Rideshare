@@ -33,35 +33,39 @@ class _SplashViewState extends State<SplashView> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blueAccent,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.directions_car,
-              size: 100,
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+    body: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            'img/car.png',
+            height: 100,
+            color: Colors.white,
+          ),
+
+          SizedBox(height: 20),
+
+          Text(
+            'RideShare',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
-            SizedBox(height: 20),
-            Text(
-              'RideShare',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 10),
-            CircularProgressIndicator(
-              color: Colors.white,
-            ),
-          ],
-        ),
+          ),
+
+          SizedBox(height: 10),
+
+          CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
