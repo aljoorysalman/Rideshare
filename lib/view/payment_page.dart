@@ -81,7 +81,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  "SAR 45.00",
+                  "SAR 15.00",
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,

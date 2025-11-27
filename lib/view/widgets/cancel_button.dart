@@ -49,6 +49,7 @@ class CancelButton extends StatelessWidget {
         ),
       ),
       onPressed: () => _cancel(context),
+      
       child: Text(isRide ? "Cancel Ride" : "Cancel Request"),
     );
   }
