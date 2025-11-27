@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:rideshare/controller/auth/verify_controller.dart';
+
 
 class VerifyPage extends StatefulWidget {
   const VerifyPage({super.key});
@@ -11,20 +12,20 @@ class VerifyPage extends StatefulWidget {
 class _VerifyPageState extends State<VerifyPage> {
   bool isChecking = false;
 
+  final VerifyController verifyController = VerifyController();
+
   @override
   void initState() {
     super.initState();
-    FirebaseAuth.instance.currentUser?.sendEmailVerification();
+    verifyController.sendVerificationEmail(); 
   }
 
   Future<void> checkVerification() async {
     setState(() => isChecking = true);
 
-    User? user = FirebaseAuth.instance.currentUser;
-    await user?.reload();
-    user = FirebaseAuth.instance.currentUser;
+    bool isVerified = await verifyController.checkIfVerified();
 
-    if (user != null && user.emailVerified) {
+    if (isVerified) {
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

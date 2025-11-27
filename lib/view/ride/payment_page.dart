@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../controller/ride/payment_controller.dart';
+import'package:rideshare/model/ride/rating_args.dart';
+import 'package:rideshare/model/ride/ride_model.dart';
+import 'package:rideshare/model/users/driver_model.dart';
+import'package:rideshare/model/ride/rating_args.dart';
+import 'package:rideshare/model/ride/ride_model.dart';
+import 'package:rideshare/model/users/driver_model.dart';
 
 
 class PaymentPage extends StatefulWidget {
@@ -18,28 +24,20 @@ enum PaymentMethod {
 class _PaymentPageState extends State<PaymentPage> {
   PaymentMethod? selectedMethod = PaymentMethod.card;
 
-  
+  final PaymentController paymentController = PaymentController();
+
   Future<void> processPayment() async {
-    try {
-      double price = 45.0; 
+    final method = selectedMethod.toString();
 
-      await FirebaseFirestore.instance.collection('payments').add({
-        'method': selectedMethod.toString(),
-        'amount': price,
-        'status': 'success',
-        'createdAt': Timestamp.now(),
-      });
+    final error = await paymentController.processPayment(method);
 
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Payment successful!")),
-      );
-
-    
-      Navigator.pushNamed(context, '/rating');
-
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Payment failed: $e")),
       );
     }
   }
@@ -47,7 +45,7 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Login / Register
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Center(
@@ -57,7 +55,6 @@ class _PaymentPageState extends State<PaymentPage> {
               children: [
                 const SizedBox(height: 40),
 
-                // Create Account / Login
                 const Center(
                   child: Text(
                     "Payment",
@@ -71,7 +68,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
                 const SizedBox(height: 30),
 
-                
                 const Text(
                   "Trip Total",
                   style: TextStyle(
@@ -102,7 +98,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
                 const SizedBox(height: 15),
 
-                // Card
                 _buildMethodTile(
                   title: "Card",
                   subtitle: "Pay with debit / credit card",
@@ -112,7 +107,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
                 const SizedBox(height: 10),
 
-                // Apple Pay
                 _buildMethodTile(
                   title: "Apple Pay",
                   subtitle: "Use Apple Pay on your device",
@@ -122,7 +116,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
                 const SizedBox(height: 10),
 
-                // STC Pay
                 _buildMethodTile(
                   title: "STC Pay",
                   subtitle: "Pay using STC Pay wallet",
@@ -132,12 +125,11 @@ class _PaymentPageState extends State<PaymentPage> {
 
                 const SizedBox(height: 30),
 
-                
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: processPayment, 
+                    onPressed: processPayment,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
@@ -149,7 +141,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white, 
+                        color: Colors.white,
                       ),
                     ),
                   ),

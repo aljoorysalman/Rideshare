@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rideshare/controller/auth/register_controller.dart';
+
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -18,9 +18,11 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController password = TextEditingController();
   final TextEditingController confirmPassword = TextEditingController();
 
+  final RegisterController controller = RegisterController();
+
   bool isLoading = false;
 
-  void register() async {
+  Future<void> handleRegister() async {
     if (firstName.text.isEmpty ||
         lastName.text.isEmpty ||
         email.text.isEmpty ||
@@ -43,33 +45,21 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => isLoading = true);
 
-    try {
-      final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-        email: email.text.trim(),
-        password: password.text.trim(),
-      );
+    final error = await controller.registerUser(
+      firstName: firstName.text,
+      lastName: lastName.text,
+      email: email.text,
+      phone: phone.text,
+      gender: gender.text,
+      password: password.text,
+    );
 
-      await FirebaseFirestore.instance
-          .collection('students')
-          .doc(userCredential.user!.uid)
-          .set({
-        'firstName': firstName.text.trim(),
-        'lastName': lastName.text.trim(),
-        'email': email.text.trim(),
-        'phone': phone.text.trim(),
-        'gender': gender.text.trim(),
-        'studentID': email.text.trim().split('@')[0],
-      });
-
-      await userCredential.user!.sendEmailVerification();
-
-      Navigator.pushReplacementNamed(context, '/verify');
-
-    } catch (e) {
+    if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Registration failed: $e")),
+        SnackBar(content: Text(error)),
       );
+    } else {
+      Navigator.pushReplacementNamed(context, '/verify');
     }
 
     setState(() => isLoading = false);
@@ -111,7 +101,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: isLoading ? null : register,
+                  onPressed: isLoading ? null : handleRegister,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     shape: RoundedRectangleBorder(

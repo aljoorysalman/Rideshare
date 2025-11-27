@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../model/ride_request_model.dart';
+import '../../model/ride/ride_request_model.dart';
 import 'dart:math' as math;
 
 class RideRequestController {

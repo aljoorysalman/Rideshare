@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ← الباك اند
+import '../../controller/ride/rating_controller.dart';
+import 'package:rideshare/model/ride/ride_model.dart';
+import 'package:rideshare/model/users/driver_model.dart';
 
 class RatingPage extends StatefulWidget {
-  const RatingPage({super.key});
+  final RideModel ride;
+  final DriverModel driver;
+
+  const RatingPage({
+    super.key,
+    required this.ride,
+    required this.driver,
+  });
 
   @override
   State<RatingPage> createState() => _RatingPageState();
 }
 
 class _RatingPageState extends State<RatingPage> {
-  int selectedStars = 0; 
+  int selectedStars = 0;
   final TextEditingController feedbackController = TextEditingController();
 
-  
+  final RatingController ratingController = RatingController();
+
   Future<void> submitRating() async {
     if (selectedStars == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -21,26 +31,26 @@ class _RatingPageState extends State<RatingPage> {
       return;
     }
 
-    try {
-      await FirebaseFirestore.instance.collection('ratings').add({
-        'stars': selectedStars,
-        'feedback': feedbackController.text.trim(),
-        'driverID': 'driver123', 
-        'userID': 'user123',     
-        'createdAt': Timestamp.now(),
-      });
+    final success = await ratingController.handleDriverRating(
+        driverId: widget.driver.userID,          // from DriverModel
+       rideId: widget.ride.rideID,              // from RideModel
+      rating: selectedStars.toDouble(),
+    feedback: feedbackController.text.trim(),
+);
 
+
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Thank you for your feedback!")),
+        const SnackBar(content: Text("Something went wrong, try again.")),
       );
-
-      Navigator.pop(context); 
-
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      return;
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Thank you for your feedback!")),
+    );
+
+    Navigator.pop(context);
   }
 
   @override
@@ -104,7 +114,7 @@ class _RatingPageState extends State<RatingPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: submitRating, 
+                  onPressed: submitRating,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     shape: RoundedRectangleBorder(

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:rideshare/controller/driver_controller.dart';
-import 'package:rideshare/model/driver_model.dart';
+import 'package:rideshare/controller/users/driver_controller.dart';
+import 'package:rideshare/model/users/driver_model.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
 import 'package:rideshare/view/chat/chat_view.dart';
 import'package:rideshare/view/widgets/cancel_button.dart';
 import 'package:location/location.dart';
-import 'package:rideshare/controller/emergency_controller.dart';
+import 'package:rideshare/controller/emergency/emergency_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:rideshare/model/ride_model.dart';
+import 'package:rideshare/model/ride/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AcceptedRideView extends StatefulWidget {
