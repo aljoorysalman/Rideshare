@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD:lib/view/ride/payment_page.dart
 import '../../controller/ride/payment_controller.dart';
 import'package:rideshare/model/ride/rating_args.dart';
 import 'package:rideshare/model/ride/ride_model.dart';
@@ -7,6 +8,9 @@ import'package:rideshare/model/ride/rating_args.dart';
 import 'package:rideshare/model/ride/ride_model.dart';
 import 'package:rideshare/model/users/driver_model.dart';
 
+=======
+import '../controller/payment_controller.dart';
+>>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/payment_page.dart
 
 class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
@@ -39,6 +43,11 @@ class _PaymentPageState extends State<PaymentPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Payment successful!")),
       );
+<<<<<<< HEAD:lib/view/ride/payment_page.dart
+=======
+
+      Navigator.pushNamed(context, '/rating');
+>>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/payment_page.dart
     }
   }
 

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD:lib/view/auth/verify_view.dart
 import 'package:rideshare/controller/auth/verify_controller.dart';
 
+=======
+import '../controller/verify_controller.dart';
+>>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/verify_page.dart
 
 class VerifyPage extends StatefulWidget {
   const VerifyPage({super.key});

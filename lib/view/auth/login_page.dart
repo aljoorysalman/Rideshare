@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+<<<<<<< HEAD:lib/view/auth/login_page.dart
 import '../../controller/auth/login_controller.dart';   
+=======
+import '../controller/login_controller.dart';   
+>>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/login_page.dart
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
