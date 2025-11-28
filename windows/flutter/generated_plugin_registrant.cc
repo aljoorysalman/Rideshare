@@ -12,7 +12,6 @@
 #include <geolocator_windows/geolocator_windows.h>
 #include <url_launcher_windows/url_launcher_windows.h>
 
-
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   CloudFirestorePluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("CloudFirestorePluginCApi"));
@@ -20,10 +19,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("FirebaseAuthPluginCApi"));
   FirebaseCorePluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FirebaseCorePluginCApi"));
-GeolocatorWindowsRegisterWithRegistrar(
-    registry->GetRegistrarForPlugin("GeolocatorWindows"));
-  
-UrlLauncherWindowsRegisterWithRegistrar(
-    registry->GetRegistrarForPlugin("UrlLauncherWindows"));
-
+  GeolocatorWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("GeolocatorWindows"));
+  UrlLauncherWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("UrlLauncherWindows"));
 }
