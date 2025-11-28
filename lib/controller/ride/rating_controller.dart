@@ -1,9 +1,11 @@
+// lib/controller/rating_controller.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RatingController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  ///  Store ratings, update the driver's overall rating
+  /// S9: Store ratings, update the driver's overall rating
   Future<bool> handleDriverRating({
     required String driverId,
     required double rating, 
