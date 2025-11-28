@@ -36,13 +36,13 @@ class _SplashViewState extends State<SplashView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.directions_car,
+                Image.asset('img/car.png', height: 80) as IconData?,
               size: 100,
               color: Colors.white,
             ),

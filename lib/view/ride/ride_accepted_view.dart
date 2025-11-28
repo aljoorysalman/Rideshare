@@ -103,19 +103,18 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
                                     const SizedBox(height: 6),
                                     // Driver rating row
                                     Row(
-                                      children: [
-                                        const Icon(Icons.star,
-                                            color: Colors.amber, size: 20),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          driver.rating.toStringAsFixed(1),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    children: [
+                                      const Icon(Icons.star, color: Colors.amber, size: 20),
+                                      const SizedBox(width: 4),
+                                         Text(
+                                          driver.averageRating.toStringAsFixed(1),
+                                             style: const TextStyle(
+                                              fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                             ),
+                                           ),
+                                         ],
+                                   ),
 
                                     const SizedBox(height: 16),
                                     // Car information

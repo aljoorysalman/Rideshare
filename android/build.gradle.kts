@@ -1,5 +1,3 @@
-import java.io.File
-
 buildscript {
     repositories {
         google()
@@ -8,7 +6,7 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.1.0")
         classpath("com.google.gms:google-services:4.3.15")
-        //  Do NOT add kotlin-gradle-plugin 2.1.0 (breaks Flutter)
+        // DO NOT add kotlin-gradle-plugin 2.1.0 (breaks Flutter)
     }
 }
 
