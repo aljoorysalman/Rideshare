@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../model/payment_model.dart';
+import '../../model/ride/payment_model.dart';
 
 class PaymentController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.1.0")
+        classpath("com.android.tools.build:gradle:8.5.2")
         classpath("com.google.gms:google-services:4.3.15")
         // DO NOT add kotlin-gradle-plugin 2.1.0 (breaks Flutter)
     }

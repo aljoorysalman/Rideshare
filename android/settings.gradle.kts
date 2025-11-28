@@ -16,19 +16,19 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
 
-    id("com.android.application") version "8.1.1" apply false
+    // UPDATED AGP VERSION ↓↓↓↓↓↓↓↓↓↓
+    id("com.android.application") version "8.5.2" apply false
+    id("com.android.library") version "8.5.2" apply false
 
-    // START: FlutterFire Configuration
+    // FlutterFire
     id("com.google.gms.google-services") version "4.3.10" apply false
-    // END: FlutterFire Configuration
 
-    // Use Kotlin plugin compatible with Flutter
+    // Kotlin plugin
     id("org.jetbrains.kotlin.android") version "1.9.22" apply false
 }
-
-
 
 include(":app")

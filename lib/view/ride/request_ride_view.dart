@@ -4,9 +4,9 @@ import 'package:rideshare/view/widgets/custom_textfield.dart';
 import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/view/ride/select_location_view.dart';
 import 'package:rideshare/view/ride/waiting_view.dart';
-import 'package:rideshare/controller/ride_request_controller.dart';
-import 'package:rideshare/controller/ride_matching_controller.dart';
-import 'package:rideshare/model/ride_request_model.dart';
+import 'package:rideshare/controller/ride/Ride_Request_Controller.dart';
+import 'package:rideshare/controller/ride/ride_matching_controller.dart';
+import 'package:rideshare/model/ride/ride_request_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 

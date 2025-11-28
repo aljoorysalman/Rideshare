@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../model/chat_message.dart';
+import '../../model/ride/chat_message.dart';
 
 class ChatController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

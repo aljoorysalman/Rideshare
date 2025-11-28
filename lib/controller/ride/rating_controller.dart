@@ -1,30 +1,11 @@
+// lib/controller/rating_controller.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RatingController {
-<<<<<<< HEAD
-  Future<String?> submitRating({
-    required int stars,
-    required String feedback,
-  }) async {
-    try {
-      await FirebaseFirestore.instance.collection('ratings').add({
-        'stars': stars,
-        'feedback': feedback,
-        'driverID': 'driver123',  
-        'userID': 'user123',     
-        'createdAt': Timestamp.now(),
-      });
-
-      return null; 
-    } catch (e) {
-      return "Error: $e";
-    }
-  }
-}
-=======
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  ///  Store ratings, update the driver's overall rating
+  /// S9: Store ratings, update the driver's overall rating
   Future<bool> handleDriverRating({
     required String driverId,
     required double rating, 
@@ -70,4 +51,3 @@ class RatingController {
     }
   }
 }
->>>>>>> main

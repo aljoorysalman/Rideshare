@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("com.google.gms.google-services")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -37,4 +36,12 @@ android {
 
 flutter {
     source = "../.."
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("androidx.core:core:1.12.0")
+        force("androidx.core:core-ktx:1.12.0")
+        force("androidx.browser:browser:1.5.0")
+    }
 }
