@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD:lib/view/auth/register_view.dart
 import 'package:rideshare/controller/auth/register_controller.dart';
-
-=======
-import '../controller/register_controller.dart';
->>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/register_page.dart
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});

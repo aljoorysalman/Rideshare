@@ -108,9 +108,6 @@ class _RequestRideViewState extends State<RequestRideView> {
               ],
             ),
 
-
-  
-
             const SizedBox(height: 30),
 
             //  REQUEST BUTTON 
@@ -133,25 +130,32 @@ class _RequestRideViewState extends State<RequestRideView> {
       ),
     );
   }
+Future<void> _submitRide() async {
+  // Validate text + coordinates
+  final error = requestController.validateInputs(
+    pickupAddress: pickupController.text,
+    dropoffAddress: dropoffController.text,
+    pickupLat: pickupLatLng?.latitude,
+    pickupLng: pickupLatLng?.longitude,
+    dropoffLat: dropoffLatLng?.latitude,
+    dropoffLng: dropoffLatLng?.longitude,
+  );
 
-  // SUBMIT RIDE → create request → save → go to WaitingView
-  
-  Future<void> _submitRide() async {
-    final error = requestController.validateInputs(
-      pickupAddress: pickupController.text,
-      dropoffAddress: dropoffController.text,
-      pickupLat: pickupLatLng?.latitude,
-      pickupLng: pickupLatLng?.longitude,
-      dropoffLat: dropoffLatLng?.latitude,
-      dropoffLng: dropoffLatLng?.longitude,
+  if (error != null) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(error)));
+    return;
+  }
+
+  // FINAL SAFETY: prevent null crashes
+  if (pickupLatLng == null || dropoffLatLng == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please select both locations.")),
     );
+    return;
+  }
 
-    if (error != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
-      return;
-    }
-
+  try {
     // 1. Create request object
     final RideRequestModel request = requestController.createRequest(
       pickupAddress: pickupController.text,
@@ -164,10 +168,10 @@ class _RequestRideViewState extends State<RequestRideView> {
       requestID: requestController.generateRequestID(),
     );
 
-    // 2. Save request to Firestore
+    // 2. Save request
     await requestController.saveToFirebase(request);
 
-    // 3. Create chat room (optional)
+    // 3. Create chat room
     FirebaseFirestore.instance
         .collection("messages")
         .doc(request.requestID)
@@ -178,7 +182,7 @@ class _RequestRideViewState extends State<RequestRideView> {
       "timestamp": DateTime.now(),
     });
 
-    // 4. Navigate to WAITING SCREEN immediately
+    // 4. Navigate to waiting screen
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -186,12 +190,8 @@ class _RequestRideViewState extends State<RequestRideView> {
       ),
     );
 
-    // 5. Start matching (no blocking UI)
-    try {
-      await matchingController.handleFullRideFlow(request);
-    } catch (e) {
-      print("Matching failed: $e");
-    }
+    // 5. Start matching
+    matchingController.handleFullRideFlow(request);
 
     // 6. Reset fields
     pickupController.clear();
@@ -199,27 +199,38 @@ class _RequestRideViewState extends State<RequestRideView> {
     pickupLatLng = null;
     dropoffLatLng = null;
     setState(() {});
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Something went wrong. Please try again.")),
+    );
+    print("Submit ride failed: $e");
   }
+}
 
-  
+
   // LOCATION SELECTOR
   Future<void> _openLocationSelector(bool isPickup) async {
     final result = await Navigator.push(
       context,
+      
       MaterialPageRoute(
         builder: (_) => SelectLocationView(isPickup: isPickup),
       ),
+      
     );
 
     if (result == null) return;
 
     setState(() {
+      final String address = (result["address"] ?? "") as String;
+      final LatLng? latLng = result["latLng"] as LatLng?;
+
       if (isPickup) {
-        pickupController.text = result["address"];
-        pickupLatLng = result["latLng"];
+        pickupController.text = address;
+        pickupLatLng = latLng;
       } else {
-        dropoffController.text = result["address"];
-        dropoffLatLng = result["latLng"];
+        dropoffController.text = address;
+        dropoffLatLng = latLng;
       }
     });
   }

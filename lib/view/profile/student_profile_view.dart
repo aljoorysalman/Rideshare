@@ -18,6 +18,9 @@ class _StudentProfileViewState extends State<StudentProfileView> {
   bool isEditingPhone = false;
   final TextEditingController phoneController = TextEditingController();
 
+  bool isEditingEmergency = false;
+  final TextEditingController emergencyController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +58,8 @@ class _StudentProfileViewState extends State<StudentProfileView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+
+                // ------------------- PROFILE HEADER -------------------
                 Center(
                   child: Column(
                     children: [
@@ -72,9 +77,7 @@ class _StudentProfileViewState extends State<StudentProfileView> {
                       ),
                       Text(
                         profile.email,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                        ),
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),
@@ -82,6 +85,7 @@ class _StudentProfileViewState extends State<StudentProfileView> {
 
                 const SizedBox(height: 30),
 
+                // ------------------- PHONE NUMBER SECTION -------------------
                 const Text(
                   "Phone Number",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -140,6 +144,74 @@ class _StudentProfileViewState extends State<StudentProfileView> {
 
                 const SizedBox(height: 30),
 
+                // ------------------- EMERGENCY CONTACT SECTION -------------------
+                const Text(
+                  "Emergency Contact",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+
+                Text(
+                  profile.emergencyContact.isEmpty
+                      ? "No emergency contact added"
+                      : profile.emergencyContact,
+                  style: const TextStyle(fontSize: 16),
+                ),
+
+                if (!isEditingEmergency)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        isEditingEmergency = true;
+                        emergencyController.text = profile.emergencyContact;
+                      });
+                    },
+                    child: Text(
+                      profile.emergencyContact.isEmpty
+                          ? "Add emergency contact"
+                          : "Edit emergency contact",
+                    ),
+                  ),
+
+                if (isEditingEmergency)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: emergencyController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: "Enter emergency contact number",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await _controller.updateEmergencyContact(
+                            emergencyController.text.trim(),
+                          );
+
+                          setState(() {
+                            isEditingEmergency = false;
+                            _futureProfile = _controller.getStudentProfile();
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Emergency contact updated"),
+                            ),
+                          );
+                        },
+                        child: const Text("Confirm"),
+                      ),
+                    ],
+                  ),
+
+                const SizedBox(height: 30),
+
+                // ------------------- PREVIOUS TRIPS -------------------
                 const Text(
                   "Previous Trips",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -161,6 +233,7 @@ class _StudentProfileViewState extends State<StudentProfileView> {
 
                 const SizedBox(height: 30),
 
+                // ------------------- LOGOUT -------------------
                 Center(
                   child: TextButton(
                     onPressed: () {},
@@ -179,9 +252,7 @@ class _StudentProfileViewState extends State<StudentProfileView> {
         },
       ),
 
-      bottomNavigationBar: const BottomNavBar(
-        currentIndex: 1,
-      ),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
     );
   }
 }

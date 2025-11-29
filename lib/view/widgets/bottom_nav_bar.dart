@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
 import 'package:rideshare/view/ride/home_view.dart';
-
-import 'package:rideshare/view/profile/profile_view.dart';
+import 'package:rideshare/view/profile/student_profile_view.dart';
 
 class BottomNavBar extends StatefulWidget {
   final int currentIndex; // highlights the active page
@@ -34,7 +33,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
       case 1:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const ProfileView()),
+          MaterialPageRoute(builder: (_) => const StudentProfileView()),
         );
         break;
     

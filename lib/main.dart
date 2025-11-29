@@ -6,7 +6,7 @@ import 'view/auth/login_page.dart';
 import 'view/auth/register_view.dart';
 import 'view/auth/verify_view.dart';
 import 'view/auth/dashboard_view.dart';
-
+import 'view/ride/home_view.dart';
 import 'view/ride/payment_page.dart';
 import 'view/ride/rating_page.dart';
 import 'view/ride/ride_accepted_view.dart';
@@ -14,6 +14,7 @@ import 'view/ride/ride_accepted_view.dart';
 import 'package:rideshare/model/ride/rating_args.dart';
 
 import 'package:rideshare/view/splashview.dart';
+
 
 
 void main() async {
@@ -30,35 +31,36 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
+@override
+Widget build(BuildContext context) {
+  return MaterialApp(
+    debugShowCheckedModeBanner: false,
 
-      home: SplashView(),
+    home: SplashView(),
 
-      routes: {
-        '/login': (_) => const LoginPage(),
-        '/register': (_) => const RegisterPage(),
-        '/verify': (_) => const VerifyPage(),
-        '/payment': (_) => const PaymentPage(),
-        '/dashboard': (_) => const DashboardPage(),
-      },
+    routes: {
+      '/login': (_) => const LoginPage(),
+      '/register': (_) => const RegisterPage(),
+      '/verify': (_) => const VerifyPage(),
+      '/dashboard': (_) => const DashboardPage(),
+      '/home' : (_)=> const HomeView(),
+    },
 
-      onGenerateRoute: (settings) {
+    onGenerateRoute: (settings) {
   if (settings.name == '/rating') {
-    final args = settings.arguments as Map<String, dynamic>;
+    final args = settings.arguments as RatingArgs;
 
     return MaterialPageRoute(
       builder: (_) => RatingPage(
-        driverId: args['driverId'],
-        rideId: args['rideId'],
+        driverId: args.driverId,
+        rideId: args.rideId,
       ),
     );
   }
+
   return null;
 },
 
-    );
-  }
+  );
+}
 }

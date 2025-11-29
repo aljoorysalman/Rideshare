@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD:lib/view/ride/payment_page.dart
 import '../../controller/ride/payment_controller.dart';
-import'package:rideshare/model/ride/rating_args.dart';
-import 'package:rideshare/model/ride/ride_model.dart';
-import 'package:rideshare/model/users/driver_model.dart';
-import'package:rideshare/model/ride/rating_args.dart';
-import 'package:rideshare/model/ride/ride_model.dart';
-import 'package:rideshare/model/users/driver_model.dart';
-
-=======
-import '../controller/payment_controller.dart';
->>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/payment_page.dart
+import 'package:rideshare/model/ride/rating_args.dart';
 
 class PaymentPage extends StatefulWidget {
-  const PaymentPage({super.key});
+  final String rideId;
+  final String driverId;
+  final double amount;
+
+  const PaymentPage({
+    super.key,
+    required this.rideId,
+    required this.driverId,
+    required this.amount,
+  });
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();
@@ -27,13 +26,19 @@ enum PaymentMethod {
 
 class _PaymentPageState extends State<PaymentPage> {
   PaymentMethod? selectedMethod = PaymentMethod.card;
-
   final PaymentController paymentController = PaymentController();
 
   Future<void> processPayment() async {
     final method = selectedMethod.toString();
 
-    final error = await paymentController.processPayment(method);
+    final error = await paymentController.processPayment(
+      methodString: method,
+      rideId: widget.rideId,
+      driverId: widget.driverId,
+      amount: widget.amount,
+    );
+
+    if (!mounted) return;
 
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,11 +48,16 @@ class _PaymentPageState extends State<PaymentPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Payment successful!")),
       );
-<<<<<<< HEAD:lib/view/ride/payment_page.dart
-=======
 
-      Navigator.pushNamed(context, '/rating');
->>>>>>> 8e2852ec4478daef682e43d3118b47c09a2b1208:lib/view/payment_page.dart
+      // Navigate to rating page with arguments
+      Navigator.pushNamed(
+        context,
+        '/rating',
+        arguments: RatingArgs(
+          driverId: widget.driverId,
+          rideId: widget.rideId,
+        ),
+      );
     }
   }
 
@@ -77,17 +87,13 @@ class _PaymentPageState extends State<PaymentPage> {
 
                 const SizedBox(height: 30),
 
-                const Text(
-                  "Trip Total",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
-                ),
+                const Text("Trip Total",
+                    style: TextStyle(fontSize: 16, color: Colors.black54)),
                 const SizedBox(height: 8),
-                const Text(
-                  "SAR 15.00",
-                  style: TextStyle(
+
+                Text(
+                  "SAR ${widget.amount.toStringAsFixed(2)}",
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
@@ -181,7 +187,9 @@ class _PaymentPageState extends State<PaymentPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selectedMethod == method ? Colors.black : Colors.grey.shade300,
+            color: selectedMethod == method
+                ? Colors.black
+                : Colors.grey.shade300,
             width: selectedMethod == method ? 2 : 1,
           ),
         ),
@@ -189,29 +197,26 @@ class _PaymentPageState extends State<PaymentPage> {
           children: [
             Icon(icon, color: Colors.black87),
             const SizedBox(width: 12),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black)),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.black54,
-                    ),
-                  ),
+                  Text(subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      )),
                 ],
               ),
             ),
+
             Radio<PaymentMethod>(
               value: method,
               groupValue: selectedMethod,

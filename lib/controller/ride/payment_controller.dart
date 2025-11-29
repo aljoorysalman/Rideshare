@@ -9,24 +9,24 @@ class PaymentController {
   CollectionReference get _paymentsRef =>
       _firestore.collection('payments');
 
-  /// تُستخدم من صفحة الدفع:
-  /// ترجع null إذا نجحت العملية، أو نص برسالة الخطأ إذا فشلت
-  Future<String?> processPayment(String methodString) async {
+
+  /// PROCESS PAYMENT
+  /// Returns:
+  ///   null => success
+  ///   String => error message
+  
+  Future<String?> processPayment({
+    required String methodString,
+    required String rideId,
+    required String driverId,
+    required double amount,
+  }) async {
     try {
-      // يحول "PaymentMethod.card" إلى "card" مثلاً
+      // Clean method → example: "PaymentMethod.card" → "card"
       final method = methodString.split('.').last;
 
-      // نتأكد إن المستخدم مسجل دخول
       final user = _auth.currentUser;
-      if (user == null) {
-        return 'User is not logged in';
-      }
-
-      // 🔹 TODO: هنا حطي القيم الصح اللي عندكم من الرحلة
-      // مؤقتًا حطيت قيم ثابتة عشان ما يكسر الكود
-      const String rideId = 'ride_temp_id';      // استبدليه بالـ rideId الحقيقي
-      const String driverId = 'driver_temp_id';  // استبدليه بالـ driverId الحقيقي
-      const double amount = 45.0;                // نفس اللي ظاهر في الشاشة "SAR 45.00"
+      if (user == null) return 'User is not logged in';
 
       final payment = PaymentModel(
         rideId: rideId,
@@ -39,7 +39,7 @@ class PaymentController {
 
       await _paymentsRef.add(payment.toMap());
       print('✅ Payment added successfully');
-      return null; // null يعني ما فيه خطأ
+      return null;
 
     } catch (e) {
       print('❌ Error processing payment: $e');
@@ -47,7 +47,9 @@ class PaymentController {
     }
   }
 
-  /// اختياري: تجيب مدفوعات الرحلة (ممكن تحتاجينها لعرض التفاصيل)
+  /// 
+  /// GET PAYMENTS FOR SPECIFIC RIDE
+  /// 
   Future<List<PaymentModel>> getPaymentsForRide(String rideId) async {
     try {
       final query = await _paymentsRef
@@ -63,7 +65,9 @@ class PaymentController {
     }
   }
 
-  /// اختياري: مدفوعات طالب معيّن (ممكن تستخدمينها في البروفايل)
+  /// 
+  /// GET PAYMENTS FOR SPECIFIC USER
+  /// 
   Future<List<PaymentModel>> getUserPayments(String userId) async {
     try {
       final query = await _paymentsRef

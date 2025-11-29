@@ -79,6 +79,13 @@ class RideMatchingController {
 
     }
 
+    // If direction is undefined, treat it as match-all (TEST ONLY)
+if (driver.direction == "Undefined" || request.direction == "Undefined") {
+  final distance = calculateDistanceKm(driverLatLng, studentPickupLatLng);
+  return distance <= maxPickupDistanceKm;   // still enforce distance rule
+}
+
+
     return false;
   }
 
@@ -93,7 +100,7 @@ class RideMatchingController {
     String? matchedDriver;
 
     for (var doc in driverDocs.docs) {
-      final driver = DriverModel.fromMap(doc.data() as Map<String, dynamic>);
+       final driver = DriverModel.fromDoc(doc);
 
       // Get driver's existing active ride (if any)
       String? existingNeighborhood;
@@ -121,10 +128,8 @@ class RideMatchingController {
 
 Future<String> handleFullRideFlow(RideRequestModel request) async {
   // 1) Save request to Firestore
-  await FirebaseFirestore.instance
-      .collection("ride_requests")
-      .doc(request.requestID)
-      .set(request.toMap());
+   // Request is already saved in RequestRideView _before calling this function
+
 
   // 2) Match a driver
   final String? driverID = await matchDriverToStudent(request: request);

@@ -10,22 +10,25 @@ import 'package:rideshare/controller/emergency/emergency_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rideshare/model/ride/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:rideshare/view/ride/payment_page.dart';
 
 class AcceptedRideView extends StatefulWidget {
   final String driverID;      // The ID of the driver for this ride
   final LatLng pickupLatLng; // The pickup location coordinates
-
+  
   const AcceptedRideView({
     super.key,
     required this.driverID,
     required this.pickupLatLng,
   });
 
+
   @override
   State<AcceptedRideView> createState() => _AcceptedRideViewState();
 }
 
 class _AcceptedRideViewState extends State<AcceptedRideView> {
+  bool _navigatedToPayment = false; 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,13 +51,33 @@ class _AcceptedRideViewState extends State<AcceptedRideView> {
             if (rideSnap.data!.docs.isEmpty) {
               return const Center(child: Text("No active ride found"));
             }
-
             // Convert the Firestore document into a RideModel object
             final rideDoc = rideSnap.data!.docs.first;
             final ride = RideModel.fromMap(
               rideDoc.id,
               rideDoc.data() as Map<String, dynamic>,
             );
+            if ((ride.status == "finished" || ride.status == "done") &&
+                !_navigatedToPayment &&
+                mounted) {
+              _navigatedToPayment = true;
+
+              Future.microtask(() {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PaymentPage(
+                      rideId: ride.rideID,
+                      driverId: ride.driverID,
+                      amount: ride.fare,
+                    ),
+                  ),
+                );
+              });
+            }
+
+
+
 
             //  SECOND STREAM: Listen to driver’s live data (location, name, etc.)
             return StreamBuilder<DriverModel?>(

@@ -11,10 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-<<<<<<< HEAD
-  # Location
-=======
->>>>>>> main
+   # Location
   location: ^5.0.0
 
   # UI & Icons

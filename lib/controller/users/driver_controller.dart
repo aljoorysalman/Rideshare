@@ -19,14 +19,16 @@ class DriverController {
     DocumentSnapshot doc = await driverRef.doc(driverID).get();
     if (!doc.exists) return null;
 
-    return DriverModel.fromMap(doc.data() as Map<String, dynamic>);
+    return DriverModel.fromDoc(doc);
   }
 
   /// Listen to driver changes (real-time updates)
   Stream<DriverModel?> streamDriver(String driverID) {
     return driverRef.doc(driverID).snapshots().map((doc) {
       if (!doc.exists) return null;
-      return DriverModel.fromMap(doc.data() as Map<String, dynamic>);
+
+      
+      return DriverModel.fromDoc(doc);
     });
   }
 

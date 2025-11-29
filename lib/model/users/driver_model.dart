@@ -1,27 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DriverModel {
-  final String userID;
+  final String userID;               
   final String name;
   final String email;
   final String phone;
   final String gender;
 
   final String licenseNumber;
-  final String vehicleType;        // sedan, SUV, van
-  final String carModel;           // Camry 2020
-  final String carColor;           // white
-  final String plateNumber;        // XYZ1234
+  final String vehicleType;          // sedan, SUV, van
+  final String carModel;             // Camry 2020
+  final String carColor;             // white
+  final String plateNumber;          // XYZ1234
 
-  final bool isAvailable;          // required for matching
-  final String direction;          // HomeToCampus / CampusToHome
+  final bool isAvailable;
+  final String direction;            // HomeToCampus / CampusToHome
 
   final double averageRating;
   final double totalRating;
   final int ratingCount;
 
-  final GeoPoint? location;        // live location
-  final String? currentTripID;     // ride assigned to driver
+  final GeoPoint? location;
+  final String? currentTripID;
 
   DriverModel({
     required this.userID,
@@ -43,9 +43,12 @@ class DriverModel {
     this.currentTripID,
   });
 
-  factory DriverModel.fromMap(Map<String, dynamic> map) {
+
+  factory DriverModel.fromDoc(DocumentSnapshot doc) {
+    final map = doc.data() as Map<String, dynamic>;
+
     return DriverModel(
-      userID: map['userID'] ?? '',
+      userID: doc.id,                     
       name: map['name'] ?? '',
       email: map['email'] ?? '',
       phone: map['phone'] ?? '',
@@ -67,7 +70,6 @@ class DriverModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'userID': userID,
       'name': name,
       'email': email,
       'phone': phone,

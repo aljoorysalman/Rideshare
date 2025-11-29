@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
+import 'package:location/location.dart' as loc;
 import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/foundation.dart';
-
+import 'package:geocoding/geocoding.dart' as geo;
 
 class SelectLocationView extends StatefulWidget {
   final bool isPickup; // true = pickup, false = dropoff screen
@@ -18,13 +16,13 @@ class SelectLocationView extends StatefulWidget {
 
 class _SelectLocationViewState extends State<SelectLocationView> {
   LatLng? selectedLatLng;  // User-selected coordinates
-  String selectedAddress = "Selected location"; // Placeholder address
+  String selectedAddress = "Selected location"; // User-selected address
 
   // Center of Riyadh
   static const LatLng riyadhCenter = LatLng(24.7136, 46.6753);
 
   GoogleMapController? _googleMapController;
-  final Location _location = Location(); //// For getting GPS location
+  final loc.Location _location = loc.Location(); //// For getting GPS location
 
   @override
   void dispose() {
@@ -32,14 +30,12 @@ class _SelectLocationViewState extends State<SelectLocationView> {
     super.dispose();
   }
 
-  
   // Move camera to user's current location using Location() package
-  
   Future<void> _moveToUserLocation() async {
     bool serviceEnabled;
-    PermissionStatus permissionGranted;
+    loc.PermissionStatus permissionGranted;
 
-     // Check if location service is ON
+    // Check if location service is ON
     serviceEnabled = await _location.serviceEnabled();
     if (!serviceEnabled) {
       serviceEnabled = await _location.requestService();
@@ -48,13 +44,13 @@ class _SelectLocationViewState extends State<SelectLocationView> {
 
     // Check permission to access location
     permissionGranted = await _location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
+    if (permissionGranted == loc.PermissionStatus.denied) {
       permissionGranted = await _location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) return;
+      if (permissionGranted != loc.PermissionStatus.granted) return;
     }
 
     // Get user's current location
-    LocationData userLocation = await _location.getLocation();
+    loc.LocationData userLocation = await _location.getLocation();
 
     if (userLocation.latitude == null || userLocation.longitude == null) {
       return;
@@ -63,11 +59,11 @@ class _SelectLocationViewState extends State<SelectLocationView> {
     final lat = userLocation.latitude!;
     final lng = userLocation.longitude!;
 
- //  simple check: is the location in Saudi Arabia?
+    // simple check: is the location in Saudi Arabia?
     final isInSaudi =
         lat >= 16.0 && lat <= 32.0 && lng >= 34.0 && lng <= 56.0;
 
-// If emulator gives fake/invalid location, show messag
+    // If emulator gives fake/invalid location, show message
     if (!isInSaudi) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,6 +76,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
       }
       return;
     }
+
     // Move Google Map camera to user’s location
     if (_googleMapController != null) {
       _googleMapController!.animateCamera(
@@ -93,17 +90,29 @@ class _SelectLocationViewState extends State<SelectLocationView> {
     }
   }
 
-   // When user taps the map → store the selected location
+  // When user taps the map → store the selected location
   Future<void> _handleMapTap(LatLng latLng) async {
-    setState(() {
-      selectedLatLng = latLng;
-      selectedAddress = "Selected location";
-    });
+    selectedLatLng = latLng;
+
+    // Convert coordinates → readable address
+    try {
+      List<geo.Placemark> placemarks =
+          await geo.placemarkFromCoordinates(latLng.latitude, latLng.longitude);
+
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        selectedAddress = "${p.street}, ${p.subLocality}, ${p.locality}";
+      } else {
+        selectedAddress = "Unnamed location";
+      }
+    } catch (e) {
+      selectedAddress = "Unknown location";
+    }
+
+    setState(() {});
   }
 
-  
   // Return selected location back to previous screen
-  
   void _confirmSelection() {
     Navigator.pop(context, {
       "latLng": selectedLatLng,
@@ -115,7 +124,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-       // App bar title switches based on isPickup flag
+      // App bar title switches based on isPickup flag
       appBar: AppBar(
         title: Text(
           widget.isPickup ? "Select Pickup" : "Select Drop-off",
@@ -139,25 +148,23 @@ class _SelectLocationViewState extends State<SelectLocationView> {
           GoogleMap(
             initialCameraPosition: const CameraPosition(
               target: riyadhCenter,
-              zoom: 14,
+              zoom: 16, // better default zoom
             ),
-             zoomGesturesEnabled: true,
+
+            zoomGesturesEnabled: true,
             scrollGesturesEnabled: true,
             rotateGesturesEnabled: true,
-           tiltGesturesEnabled: true,
-           
-          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-    Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
-  },
+            tiltGesturesEnabled: true,
 
-
-
+            // GOOGLE MAP UI
             onMapCreated: (controller) {
               _googleMapController = controller;
             },
-            onTap: (LatLng point) => _handleMapTap(point), // Save tap location
-  
-              // Show marker only when user picks a point
+
+            // Save tap location
+            onTap: (LatLng point) => _handleMapTap(point),
+
+            // Show marker only when user picks a point
             markers: selectedLatLng == null
                 ? {}
                 : {
@@ -171,7 +178,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
                   },
           ),
 
-          // CONFIRM BUTTON 
+          // CONFIRM BUTTON
           Positioned(
             left: 16,
             right: 16,
