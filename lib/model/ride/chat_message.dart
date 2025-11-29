@@ -1,28 +1,28 @@
-import'package:cloud_firestore/cloud_firestore.dart';
-class ChatMessage {
-  final String text;   // نص الرسالة
-  final bool isMe;     // true = أنا، false = السائق
-   final DateTime? timestamp;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+class ChatMessage {
+  final String message;       // نص الرسالة
+  final String senderId;      // ID صاحب الرسالة
+  final DateTime? timestamp;  // وقت الرسالة
   
   ChatMessage({
-    required this.text,
-    required this.isMe,
+    required this.message,
+    required this.senderId,
     this.timestamp,
   });
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) {
     return ChatMessage(
-      text: map['text'],
-      isMe: map['isMe'],
+      message: map['message'], 
+      senderId: map['senderId'],
       timestamp: (map['timestamp'] as Timestamp?)?.toDate(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      "text": text,
-      "isMe": isMe,
+      "message": message,
+      "senderId": senderId,
       "timestamp": timestamp,
     };
   }

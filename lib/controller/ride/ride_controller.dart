@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rideshare/model/ride/ride_model.dart';
+import'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RideController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,41 +15,66 @@ class RideController {
   // CREATE RIDE AFTER MATCH
   
   Future<String> createRide({
-    required GeoPoint pickupLocation,
-    required String pickupAddress,
-    
-    required GeoPoint dropoffLocation,
-    required String dropoffAddress,
+  required GeoPoint pickupLocation,
+  required String pickupAddress,
 
-    required String direction, // HomeToCampus / CampusToHome
-    required String driverID,
-    required List<String> studentIDs,
-  }) async {
-    final rideID = _firestore.collection("rides").doc().id;
+  required GeoPoint dropoffLocation,
+  required String dropoffAddress,
 
-    final ride = RideModel(
-      rideID: rideID,
-      pickupLocation: pickupLocation,
-      pickupAddress: pickupAddress,
+  required String direction, // HomeToCampus / CampusToHome
+  required String driverID,
+  required List<String> studentIDs,
+}) async {
+  final rideID = _firestore.collection("rides").doc().id;
 
-      dropoffLocation: dropoffLocation,
-      dropoffAddress: dropoffAddress,
+  
+  // 1) Calculate distance
+  
+  final pickupLatLng = LatLng(pickupLocation.latitude, pickupLocation.longitude);
+  final dropoffLatLng = LatLng(dropoffLocation.latitude, dropoffLocation.longitude);
 
-      direction: direction,
-      status: "assigned",
+  final double distanceKm = calculateDistanceKm(pickupLatLng, dropoffLatLng);
 
-      fare: 0.0,
-      scheduledTime: DateTime.now(),
-      pickupPIN: generatePickupPIN(),
+  
+  // 2) Calculate fare
+  
+  const double ratePerKm = 1.5; // Base rate
+  final double totalFare = distanceKm * ratePerKm;
 
-      driverID: driverID,
-      studentIDs: studentIDs, 
+  // Shared price (per student)
+  final int studentCount = studentIDs.length;
+  final double farePerStudent =
+      double.parse((totalFare / studentCount).toStringAsFixed(2));
 
-    );
+  
+  //  3) Create ride with updated fare logic
+  
+  final ride = RideModel(
+    rideID: rideID,
+    pickupLocation: pickupLocation,
+    pickupAddress: pickupAddress,
 
-    await _firestore.collection("rides").doc(rideID).set(ride.toMap());
-    return rideID;
-  }
+    dropoffLocation: dropoffLocation,
+    dropoffAddress: dropoffAddress,
+
+    direction: direction,
+    status: "assigned",
+
+    fare: farePerStudent,                  // <-- Updated fare logic
+    totalFare: double.parse(totalFare.toStringAsFixed(2)),  // <-- Optional but recommended
+    distanceKm: distanceKm,                // <-- Needed for shared ride updates
+
+    scheduledTime: DateTime.now(),
+    pickupPIN: generatePickupPIN(),
+
+    driverID: driverID,
+    studentIDs: studentIDs,
+  );
+
+  await _firestore.collection("rides").doc(rideID).set(ride.toMap());
+  return rideID;
+}
+
 
   // ---------------------------------------------------------
   // UPDATE STATUS

@@ -11,34 +11,47 @@ class RideModel {
 
   final String direction;           // HomeToCampus / CampusToHome
 
-  final String status;              // waiting, assigned, onRoute, arrived, completed
-  final double fare;
+  String status;                    // waiting, assigned, onRoute, arrived, completed
+
+  double fare;                      // per-student fare (shared or private)
+  double totalFare;                 // total ride price (before sharing)
+  double distanceKm;                // distance between pickup and dropoff
 
   final DateTime scheduledTime;
   final int pickupPIN;
 
   final String driverID;
-  final List<String> studentIDs;
+  List<String> studentIDs;          // dynamic: grows as students join shared ride
+
 
   RideModel({
     required this.rideID,
     required this.pickupLocation,
     required this.pickupAddress,
+
     required this.dropoffLocation,
     required this.dropoffAddress,
+
     required this.direction,
+
     required this.status,
     required this.fare,
+    required this.totalFare,
+    required this.distanceKm,
+
     required this.scheduledTime,
     required this.pickupPIN,
+
     required this.driverID,
     required this.studentIDs,
   });
 
-  //  FROM FIRESTORE 
+
+  //  FROM FIRESTORE
   factory RideModel.fromMap(String id, Map<String, dynamic> map) {
     return RideModel(
       rideID: id,
+
       pickupLocation: map['pickupLocation'] as GeoPoint,
       pickupAddress: map['pickupAddress'] ?? '',
 
@@ -48,7 +61,10 @@ class RideModel {
       direction: map['direction'] ?? '',
 
       status: map['status'] ?? 'waiting',
+
       fare: (map['fare'] ?? 0).toDouble(),
+      totalFare: (map['totalFare'] ?? 0).toDouble(),
+      distanceKm: (map['distanceKm'] ?? 0).toDouble(),
 
       scheduledTime: map['scheduledTime'] is Timestamp
           ? (map['scheduledTime'] as Timestamp).toDate()
@@ -61,7 +77,8 @@ class RideModel {
     );
   }
 
-  //  TO FIRESTORE 
+
+  //  TO FIRESTORE
   Map<String, dynamic> toMap() {
     return {
       'pickupLocation': pickupLocation,
@@ -74,6 +91,9 @@ class RideModel {
 
       'status': status,
       'fare': fare,
+      'totalFare': totalFare,
+      'distanceKm': distanceKm,
+
       'scheduledTime': Timestamp.fromDate(scheduledTime),
       'pickupPIN': pickupPIN,
 

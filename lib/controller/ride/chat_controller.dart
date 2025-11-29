@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../model/ride/chat_message.dart';
 
 class ChatController {
@@ -6,6 +7,9 @@ class ChatController {
 
   // roomId is: driverID + "_" + studentID
   final String roomId;
+
+  // Identify the sender (current user)
+  final String senderId = FirebaseAuth.instance.currentUser!.uid;
 
   ChatController({required this.roomId});
 
@@ -18,8 +22,8 @@ class ChatController {
         .doc(roomId)
         .collection("messages")
         .add({
-      "text": text,
-      "isMe": isMe,
+      "message": text,          
+      "senderId": senderId,     
       "timestamp": FieldValue.serverTimestamp(),
     });
   }

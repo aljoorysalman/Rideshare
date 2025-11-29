@@ -15,7 +15,7 @@ class RideMatchingController {
   final CollectionReference ridesRef =
       FirebaseFirestore.instance.collection("rides");
 
-  // Convert Firestore GeoPoint -> LatLng
+  // Convert Firestore GeoPoint to LatLng
   LatLng geoToLatLng(GeoPoint point) {
     return LatLng(point.latitude, point.longitude);
   }
@@ -79,7 +79,7 @@ class RideMatchingController {
 
     }
 
-    // If direction is undefined, treat it as match-all (TEST ONLY)
+    // If direction is undefined, treat it as match-all 
 if (driver.direction == "Undefined" || request.direction == "Undefined") {
   final distance = calculateDistanceKm(driverLatLng, studentPickupLatLng);
   return distance <= maxPickupDistanceKm;   // still enforce distance rule
@@ -128,8 +128,7 @@ if (driver.direction == "Undefined" || request.direction == "Undefined") {
 
 Future<String> handleFullRideFlow(RideRequestModel request) async {
   // 1) Save request to Firestore
-   // Request is already saved in RequestRideView _before calling this function
-
+  // Request is already saved in RequestRideView _before calling this function
 
   // 2) Match a driver
   final String? driverID = await matchDriverToStudent(request: request);
@@ -138,22 +137,70 @@ Future<String> handleFullRideFlow(RideRequestModel request) async {
     throw "No available drivers found";
   }
 
-  // 3) Create the ride
-  final RideController rideController = RideController();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  final String rideID = await rideController.createRide(
-    pickupLocation: GeoPoint(request.pickupLat, request.pickupLng),
-    pickupAddress: request.pickupAddress,
-    dropoffLocation: GeoPoint(request.dropoffLat, request.dropoffLng),
-    dropoffAddress: request.dropoffAddress,
-    direction: request.direction,
-    driverID: driverID,
-    studentIDs: [request.riderId],
-  );
+  
+  // 3) Check if this driver already has an ACTIVE ride
+  
+  final existingRideQuery = await firestore
+      .collection("rides")
+      .where("driverID", isEqualTo: driverID)
+      .where("status", isEqualTo: "assigned") // active ride not completed yet
+      .get();
+
+  String rideID = "";
+
+  if (existingRideQuery.docs.isNotEmpty) {
+    
+    // CASE 1: Driver already has a ride → JOIN IT
+    
+
+    final existingRideDoc = existingRideQuery.docs.first;
+    rideID = existingRideDoc.id;
+
+    final rideData = existingRideDoc.data();
+    List currentStudents = List<String>.from(rideData["studentIDs"]);
+    currentStudents.add(request.riderId);
+
+    // update the ride with the new student
+    await firestore.collection("rides").doc(rideID).update({
+      "studentIDs": currentStudents,
+    });
+
+    
+    //  Recalculate shared fare
+    
+    final double distanceKm = rideData["distanceKm"];
+    const double ratePerKm = 1.5;
+    final double totalFare = distanceKm * ratePerKm;
+
+    final double farePerStudent =
+        double.parse((totalFare / currentStudents.length).toStringAsFixed(2));
+
+    await firestore.collection("rides").doc(rideID).update({
+      "fare": farePerStudent,
+      "totalFare": double.parse(totalFare.toStringAsFixed(2)),
+    });
+  } else {
+    
+    //  CASE 2: No existing ride then Create new ride
+    
+
+    final RideController rideController = RideController();
+
+    rideID = await rideController.createRide(
+      pickupLocation: GeoPoint(request.pickupLat, request.pickupLng),
+      pickupAddress: request.pickupAddress,
+      dropoffLocation: GeoPoint(request.dropoffLat, request.dropoffLng),
+      dropoffAddress: request.dropoffAddress,
+      direction: request.direction,
+      driverID: driverID,
+      studentIDs: [request.riderId],
+    );
+  }
 
   // 4) Update request to notify WaitingView
-  await FirebaseFirestore.instance
-      .collection("ride_requests")
+  await firestore.collection("ride_requests")
       .doc(request.requestID)
       .update({
     "status": "matched",
@@ -163,6 +210,7 @@ Future<String> handleFullRideFlow(RideRequestModel request) async {
 
   return rideID;
 }
+
 
 
 }
