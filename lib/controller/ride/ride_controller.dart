@@ -11,7 +11,19 @@ class RideController {
     return 1000 + Random().nextInt(9000);
   }
 
-  //
+   double calculateDistanceKm(LatLng a, LatLng b) {
+    const R = 6371;
+    final dLat = (b.latitude - a.latitude) * pi / 180;
+    final dLon = (b.longitude - a.longitude) * pi / 180;
+
+    final lat1 = a.latitude * pi / 180;
+    final lat2 = b.latitude * pi / 180;
+
+    final aVal = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1) * cos(lat2) * sin(dLon / 2) * sin(dLon / 2);
+
+    return R * 2 * atan2(sqrt(aVal), sqrt(1 - aVal));
+  }
   // CREATE RIDE AFTER MATCH
   
   Future<String> createRide({
@@ -60,9 +72,9 @@ class RideController {
     direction: direction,
     status: "assigned",
 
-    fare: farePerStudent,                  // <-- Updated fare logic
-    totalFare: double.parse(totalFare.toStringAsFixed(2)),  // <-- Optional but recommended
-    distanceKm: distanceKm,                // <-- Needed for shared ride updates
+    fare: farePerStudent,                  
+    totalFare: double.parse(totalFare.toStringAsFixed(2)),  
+    distanceKm: distanceKm,                
 
     scheduledTime: DateTime.now(),
     pickupPIN: generatePickupPIN(),

@@ -22,7 +22,7 @@ class PaymentController {
     required double amount,
   }) async {
     try {
-      // Clean method → example: "PaymentMethod.card" → "card"
+      // Clean method , example: "PaymentMethod.card" → "card"
       final method = methodString.split('.').last;
 
       final user = _auth.currentUser;

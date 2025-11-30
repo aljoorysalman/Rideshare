@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'firebase_options.dart';
 
 import 'view/auth/login_page.dart';
@@ -12,7 +13,7 @@ import 'view/ride/rating_page.dart';
 import 'view/ride/ride_accepted_view.dart';
 
 import 'package:rideshare/model/ride/rating_args.dart';
-
+import 'package:rideshare/view/ride/reserve_ride_view.dart';
 import 'package:rideshare/view/splashview.dart';
 
 
@@ -36,7 +37,8 @@ Widget build(BuildContext context) {
   return MaterialApp(
     debugShowCheckedModeBanner: false,
 
-    home: SplashView(),
+    home:SplashView(),
+
 
     routes: {
       '/login': (_) => const LoginPage(),

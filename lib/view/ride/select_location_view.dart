@@ -137,7 +137,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.my_location, color: AppColors.primary),
-            onPressed: _moveToUserLocation, // ✅ Only moves when user taps
+            onPressed: _moveToUserLocation, //  Only moves when user taps
           ),
         ],
       ),
@@ -148,7 +148,7 @@ class _SelectLocationViewState extends State<SelectLocationView> {
           GoogleMap(
             initialCameraPosition: const CameraPosition(
               target: riyadhCenter,
-              zoom: 16, // better default zoom
+              zoom: 16, //  default zoom
             ),
 
             zoomGesturesEnabled: true,

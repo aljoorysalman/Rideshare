@@ -7,7 +7,7 @@ class RideModel {
   final String pickupAddress;
 
   final GeoPoint dropoffLocation;
-  final String dropoffAddress;      // REQUIRED for Campus to Home grouping
+  final String dropoffAddress;     
 
   final String direction;           // HomeToCampus / CampusToHome
 
