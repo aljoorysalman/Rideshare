@@ -29,7 +29,7 @@ class RegisterController {
         'phone': phone.trim(),
         'gender': gender.trim(),
         'studentID': email.trim().split('@')[0],
-        'password': password.trim(),
+        'password': password.trim(),   
       });
 
      
