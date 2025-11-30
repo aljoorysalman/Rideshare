@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'ride_request_model.dart';
+import 'package:rideshare/model/ride_request_model.dart';
 import 'dart:math';
 
 class RideRequestController {
@@ -126,5 +126,5 @@ class RideRequestController {
   // ---------------------------------
   Future<void> saveToFirebase(RideRequestModel request) async {
     await _firestore.collection("ride_requests").add(request.toJson());
-  }
+  }
 }
