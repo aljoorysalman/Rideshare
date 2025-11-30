@@ -1,16 +1,18 @@
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
-import 'package:rideshare/view/chat/chat_view.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:rideshare/view/ride/ride_accepted_view.dart';
+import'package:rideshare/view/widgets/cancel_button.dart';
 
 class WaitingView extends StatefulWidget {
-  final String roomId;
-  const WaitingView({super.key, required this.roomId});
+  final String requestId; // ID of the ride request in Firestore
+  const WaitingView({
+    super.key,
+    required this.requestId,
+  });
 
   @override
   State<WaitingView> createState() => _WaitingViewState();
@@ -18,74 +20,53 @@ class WaitingView extends StatefulWidget {
 
 class _WaitingViewState extends State<WaitingView>
     with SingleTickerProviderStateMixin {
-  GoogleMapController? mapController;
-
-  Marker driverMarker = const Marker(
-    markerId: MarkerId("driver"),
-    position: LatLng(0, 0),
-  );
-
   late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
+    
+    // Animation controller for pulsing dots
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
 
-    // --------------------------- 👇 NEW IMPORTANT CODE 👇 ---------------------------
+
+    // Listen to ride request changes  navigate when matched
+    // Listen to Firestore request updates (real-time)
     FirebaseFirestore.instance
         .collection("ride_requests")
-        .doc(widget.roomId)
-        .snapshots()
-        .listen((snapshot) {
-      if (!snapshot.exists) return;
-
-      final status = snapshot.data()?["status"];
-      final driverName = snapshot.data()?["driver_name"] ?? "Driver";
-
-      if (status == "accepted") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RideAcceptedView(
-              roomId: widget.roomId,
-              driverName: driverName,
-            ),
-          ),
-        );
-      }
-
-      if (status == "rejected") {
-        Navigator.pop(context);
-      }
-    });
-    // -------------------------------------------------------------------------------
-
-    FirebaseFirestore.instance
-        .collection("drivers_live_location")
-        .doc("Uxfc5zJgFui6ndkj6jgdP")
+        .doc(widget.requestId)
         .snapshots()
         .listen((snapshot) {
       if (!snapshot.exists) return;
 
       final data = snapshot.data()!;
-      final double lat = data["lat"];
-      final double lng = data["lng"];
+      final status = data["status"];
 
-      setState(() {
-        driverMarker = Marker(
-          markerId: const MarkerId("driver"),
-          position: LatLng(lat, lng),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueBlue,
+      // If a driver matched navigate to AcceptedRide screen
+      if (status == "matched") {
+        final driverId = data["driverId"];
+        final pickupLat = data["pickupLat"];
+        final pickupLng = data["pickupLng"];
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AcceptedRideView(
+              driverID: driverId,
+              pickupLatLng: LatLng(pickupLat, pickupLng),
+            ),
           ),
         );
-      });
-    });
+      }
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat();
+      // If request is rejected (driver unavailable)  go back to home
+      if (status == "rejected") {
+        Navigator.pop(context);
+      }
+    });
   }
 
   @override
@@ -94,82 +75,36 @@ class _WaitingViewState extends State<WaitingView>
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
+
+ @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
+    body: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            child: GoogleMap(
-              initialCameraPosition: const CameraPosition(
-                target: LatLng(24.7146, 46.6764),
-                zoom: 15,
-              ),
-              markers: {driverMarker},
-              onMapCreated: (controller) {
-                mapController = controller;
-              },
-            ),
-          ),
+          // pulsing circular dots
 
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection("messages")
-                  .doc(widget.roomId)
-                  .collection("chat")
-                  .orderBy("timestamp")
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+          const SizedBox(height: 20),
 
-                final msgs = snapshot.data!.docs;
-
-                if (msgs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "No messages yet...",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: msgs.length,
-                  itemBuilder: (context, index) {
-                    final msg = msgs[index];
-                    final isMe = msg["senderId"] == "user1";
-
-                    return Align(
-                      alignment:
-                          isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 5),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: isMe ? Colors.black : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(
-                          msg["message"],
-                          style: TextStyle(
-                            color: isMe ? Colors.white : Colors.black,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+          SizedBox(
+            width: 90,
+            height: 90,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (_, __) {
+                return Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: List.generate(8, _buildPulsingDot),
+                  ),
                 );
               },
             ),
           ),
 
-          const Gap(20),
+          Gap(20),
 
           const Text(
             "Looking for a driver nearby",
@@ -189,57 +124,43 @@ class _WaitingViewState extends State<WaitingView>
               SizedBox(width: 8),
               Text(
                 "Searching within 7 km",
-                style: TextStyle(fontSize: 15, color: AppColors.greyBackground),
+                style: TextStyle(
+                  fontSize: 15,
+                  color: AppColors.greyBackground,
+                ),
               ),
             ],
           ),
 
           const SizedBox(height: 40),
 
-          CustomButton(
-            text: "Cancel ride",
-            onPressed: () => Navigator.pop(context),
-            isFullWidth: false,
-            borderRadius: 30,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            color: Colors.black,
-            textColor: Colors.white,
+          const SizedBox(height: 32),
+
+          // Cancel request button (cancels only ride_request)
+          Center(
+            child: CancelButton(
+              id: widget.requestId,
+              isRide: false,
+            ),
           ),
-
-          const SizedBox(height: 20),
-
-          CustomButton(
-            text: "Chat with driver",
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatView(roomId: widget.roomId),
-                ),
-              );
-            },
-            isFullWidth: false,
-            borderRadius: 30,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            color: Colors.black,
-            textColor: Colors.white,
-          ),
-
-          const SizedBox(height: 20),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
+  // Pulsing dot around the circle
   Widget _buildPulsingDot(int index) {
     final double angle = (index * 45) * pi / 180;
     final double radius = 30;
+
+    // phase shift for smooth wave motion
     double fade = (sin(_controller.value * 2 * pi + index * 0.7) + 1) / 2;
 
     return Transform.translate(
       offset: Offset(radius * cos(angle), radius * sin(angle)),
       child: Opacity(
-        opacity: fade * 0.9 + 0.1,
+        opacity: fade * 0.9 + 0.1, // soft fade
         child: Container(
           width: 12,
           height: 12,
@@ -248,7 +169,7 @@ class _WaitingViewState extends State<WaitingView>
             shape: BoxShape.circle,
           ),
         ),
-     ),
-);
-}
+      ),
+    );
+  }
 }

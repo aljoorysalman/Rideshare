@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:rideshare/core/constants/app_colors.dart';
+import 'package:rideshare/view/widgets/custom_textfield.dart';
+import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/view/ride/select_location_view.dart';
 import 'package:rideshare/view/ride/waiting_view.dart';
-import 'package:rideshare/view/widgets/custom_button.dart';
-import 'package:rideshare/controller/RideRequestController';
-import 'package:rideshare/controller/ride_matching_controller.dart';
-import 'package:rideshare/model/driver_model.dart';
+import 'package:rideshare/controller/ride/Ride_Request_Controller.dart';
+import 'package:rideshare/controller/ride/ride_matching_controller.dart';
+import 'package:rideshare/model/ride/ride_request_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RequestRideView extends StatefulWidget {
@@ -23,11 +24,11 @@ class _RequestRideViewState extends State<RequestRideView> {
   LatLng? pickupLatLng;
   LatLng? dropoffLatLng;
 
-  String selectedGender = "Females only";
-  String selectedCar = "economy";
-
-  final RideRequestController rideController = RideRequestController();
+  // controllers
+  final RideRequestController requestController = RideRequestController();
   final RideMatchingController matchingController = RideMatchingController();
+
+  String selectedGender = "Females only";
 
   @override
   void dispose() {
@@ -41,20 +42,75 @@ class _RequestRideViewState extends State<RequestRideView> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 90, 20, 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Request a Ride",
+              "Where to?",
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: Colors.black,
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            // PICKUP FIELD
+            Row(
+              children: [
+                _dot(Colors.green),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: CustomTextField(
+                    hint: "Pickup Location",
+                    controller: pickupController,
+                    readOnly: true,
+                    onTap: () => _openLocationSelector(true),
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 16),
 
+            // DROPOFF FIELD
+            Row(
+              children: [
+                _dot(Colors.red),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: CustomTextField(
+                    hint: "Drop-off Location",
+                    controller: dropoffController,
+                    readOnly: true,
+                    onTap: () => _openLocationSelector(false),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            const Text(
+              "Choose a ride",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                _genderButton("Females only"),
+                const SizedBox(width: 12),
+                _genderButton("Males only"),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            //  REQUEST BUTTON 
             Center(
               child: CustomButton(
                 text: "Request",
@@ -74,115 +130,142 @@ class _RequestRideViewState extends State<RequestRideView> {
       ),
     );
   }
+Future<void> _submitRide() async {
+  // Validate text + coordinates
+  final error = requestController.validateInputs(
+    pickupAddress: pickupController.text,
+    dropoffAddress: dropoffController.text,
+    pickupLat: pickupLatLng?.latitude,
+    pickupLng: pickupLatLng?.longitude,
+    dropoffLat: dropoffLatLng?.latitude,
+    dropoffLng: dropoffLatLng?.longitude,
+  );
 
-  // ---------------------- S3 + S4 ----------------------
+  if (error != null) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(error)));
+    return;
+  }
 
-  Future<void> _submitRide() async {
-    final error = rideController.validateInputs(
-      pickupAddress: pickupController.text,
-      dropoffAddress: dropoffController.text,
-      pickupLat: pickupLatLng?.latitude,
-      pickupLng: pickupLatLng?.longitude,
-      dropoffLat: dropoffLatLng?.latitude,
-      dropoffLng: dropoffLatLng?.longitude,
+  // FINAL SAFETY: prevent null crashes
+  if (pickupLatLng == null || dropoffLatLng == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please select both locations.")),
     );
+    return;
+  }
 
-    if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
-      return;
-    }
-
-    final request = rideController.createRideRequest(
+  try {
+    // 1. Create request object
+    final RideRequestModel request = requestController.createRequest(
       pickupAddress: pickupController.text,
       dropoffAddress: dropoffController.text,
       pickupLat: pickupLatLng!.latitude,
       pickupLng: pickupLatLng!.longitude,
       dropoffLat: dropoffLatLng!.latitude,
       dropoffLng: dropoffLatLng!.longitude,
-      riderId: "userID_here",
+      riderId: FirebaseAuth.instance.currentUser!.uid,
+      requestID: requestController.generateRequestID(),
     );
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+    // 2. Save request
+    await requestController.saveToFirebase(request);
+
+    // 3. Create chat room
+    FirebaseFirestore.instance
+        .collection("messages")
+        .doc(request.requestID)
+        .set({
+      "user1": request.riderId,
+      "user2": "",
+      "lastMessage": "",
+      "timestamp": DateTime.now(),
+    });
+
+    // 4. Navigate to waiting screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WaitingView(requestId: request.requestID),
+      ),
     );
 
-    try {
-      await rideController.saveToFirebase(request);
+    // 5. Start matching
+    matchingController.handleFullRideFlow(request);
 
-      // ⭐ STEP 2: إنشاء غرفة شات لكل رحلة
-      String roomId = request.requestId;
-
-      await FirebaseFirestore.instance
-          .collection("messages")
-          .doc(roomId)
-          .set({
-        "user1": request.riderId,
-        "user2": "",
-        "lastMessage": "",
-        "timestamp": DateTime.now(),
-      });
-
-      // ⭐ STEP 3: الذهاب لواجهة الانتظار وتمرير roomId
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => WaitingView(roomId: roomId),
-        ),
-      );
-
-      final List<DriverModel> matches =
-          await matchingController.findMatchesForRequest(request);
-
-      Navigator.pop(context);
-
-      if (matches.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No available drivers for this ride")),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Found ${matches.length} matching drivers")),
-        );
-      }
-
-      pickupController.clear();
-      dropoffController.clear();
-      pickupLatLng = null;
-      dropoffLatLng = null;
-      setState(() {});
-
-    } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error submitting request: $e")),
-      );
-    }
+    // 6. Reset fields
+    pickupController.clear();
+    dropoffController.clear();
+    pickupLatLng = null;
+    dropoffLatLng = null;
+    setState(() {});
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Something went wrong. Please try again.")),
+    );
+    print("Submit ride failed: $e");
   }
+}
 
-  // ---------------------- Location Selector ----------------------
 
+  // LOCATION SELECTOR
   Future<void> _openLocationSelector(bool isPickup) async {
     final result = await Navigator.push(
       context,
+      
       MaterialPageRoute(
         builder: (_) => SelectLocationView(isPickup: isPickup),
       ),
+      
     );
 
     if (result == null) return;
 
     setState(() {
+      final String address = (result["address"] ?? "") as String;
+      final LatLng? latLng = result["latLng"] as LatLng?;
+
       if (isPickup) {
-        pickupController.text = result["address"];
-        pickupLatLng = result["latLng"];
+        pickupController.text = address;
+        pickupLatLng = latLng;
       } else {
-        dropoffController.text = result["address"];
-        dropoffLatLng = result["latLng"];
-     }
-});
-}
+        dropoffController.text = address;
+        dropoffLatLng = latLng;
+      }
+    });
+  }
+
+  // UI ELEMENTS
+
+  Widget _dot(Color color) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+
+  Widget _genderButton(String title) {
+    final bool isSelected = selectedGender == title;
+
+    return GestureDetector(
+      onTap: () => setState(() => selectedGender = title),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.black),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
 }

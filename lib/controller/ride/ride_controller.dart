@@ -1,0 +1,122 @@
+import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rideshare/model/ride/ride_model.dart';
+import'package:google_maps_flutter/google_maps_flutter.dart';
+
+class RideController {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Generate 4-digit PIN
+  int generatePickupPIN() {
+    return 1000 + Random().nextInt(9000);
+  }
+
+  //
+  // CREATE RIDE AFTER MATCH
+  
+  Future<String> createRide({
+  required GeoPoint pickupLocation,
+  required String pickupAddress,
+
+  required GeoPoint dropoffLocation,
+  required String dropoffAddress,
+
+  required String direction, // HomeToCampus / CampusToHome
+  required String driverID,
+  required List<String> studentIDs,
+}) async {
+  final rideID = _firestore.collection("rides").doc().id;
+
+  
+  // 1) Calculate distance
+  
+  final pickupLatLng = LatLng(pickupLocation.latitude, pickupLocation.longitude);
+  final dropoffLatLng = LatLng(dropoffLocation.latitude, dropoffLocation.longitude);
+
+  final double distanceKm = calculateDistanceKm(pickupLatLng, dropoffLatLng);
+
+  
+  // 2) Calculate fare
+  
+  const double ratePerKm = 1.5; // Base rate
+  final double totalFare = distanceKm * ratePerKm;
+
+  // Shared price (per student)
+  final int studentCount = studentIDs.length;
+  final double farePerStudent =
+      double.parse((totalFare / studentCount).toStringAsFixed(2));
+
+  
+  //  3) Create ride with updated fare logic
+  
+  final ride = RideModel(
+    rideID: rideID,
+    pickupLocation: pickupLocation,
+    pickupAddress: pickupAddress,
+
+    dropoffLocation: dropoffLocation,
+    dropoffAddress: dropoffAddress,
+
+    direction: direction,
+    status: "assigned",
+
+    fare: farePerStudent,                  // <-- Updated fare logic
+    totalFare: double.parse(totalFare.toStringAsFixed(2)),  // <-- Optional but recommended
+    distanceKm: distanceKm,                // <-- Needed for shared ride updates
+
+    scheduledTime: DateTime.now(),
+    pickupPIN: generatePickupPIN(),
+
+    driverID: driverID,
+    studentIDs: studentIDs,
+  );
+
+  await _firestore.collection("rides").doc(rideID).set(ride.toMap());
+  return rideID;
+}
+
+
+  // ---------------------------------------------------------
+  // UPDATE STATUS
+  // ---------------------------------------------------------
+  Future<void> updateStatus(String rideID, String status) async {
+    await _firestore.collection("rides").doc(rideID).update({
+      "status": status,
+    });
+  }
+
+  // ---------------------------------------------------------
+  // ADD STUDENT (Campus → Home grouping)
+  // ---------------------------------------------------------
+  Future<void> addStudent(String rideID, String studentID) async {
+    await _firestore.collection("rides").doc(rideID).update({
+      "studentIDs": FieldValue.arrayUnion([studentID]),
+    });
+  }
+
+  // ---------------------------------------------------------
+  // END RIDE
+  // ---------------------------------------------------------
+  Future<void> endRide(String rideID) async {
+    await updateStatus(rideID, "completed");
+  }
+
+  // ---------------------------------------------------------
+  // STREAM RIDE DATA
+  // ---------------------------------------------------------
+  Stream<RideModel?> streamRide(String rideID) {
+    return _firestore.collection("rides").doc(rideID).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return RideModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    });
+  }
+
+Future<void> cancelRide(String rideID, String cancelledBy) async {
+    await _firestore.collection("rides").doc(rideID).update({
+      "status": "cancelled",
+      "cancelledBy": cancelledBy,
+      "cancelledAt": Timestamp.now(),
+    });
+  }
+
+}

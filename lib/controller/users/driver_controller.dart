@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:rideshare/model/driver_model.dart';
+import 'package:rideshare/model/users/driver_model.dart';
 
-class DriverService {
+class DriverController { 
+
   final CollectionReference driverRef =
       FirebaseFirestore.instance.collection("drivers");
 
@@ -18,14 +19,16 @@ class DriverService {
     DocumentSnapshot doc = await driverRef.doc(driverID).get();
     if (!doc.exists) return null;
 
-    return DriverModel.fromMap(doc.data() as Map<String, dynamic>);
+    return DriverModel.fromDoc(doc);
   }
 
   /// Listen to driver changes (real-time updates)
   Stream<DriverModel?> streamDriver(String driverID) {
     return driverRef.doc(driverID).snapshots().map((doc) {
       if (!doc.exists) return null;
-      return DriverModel.fromMap(doc.data() as Map<String, dynamic>);
+
+      
+      return DriverModel.fromDoc(doc);
     });
   }
 
@@ -39,7 +42,7 @@ class DriverService {
   /// Update driver real-time location
   Future<void> updateLocation(String driverID, double lat, double lng) async {
     await driverRef.doc(driverID).update({
-      "location": GeoPoint(lat, lng), // ⭐ better than manual map
+      "location": GeoPoint(lat, lng), 
     });
   }
 
@@ -80,4 +83,3 @@ class DriverService {
     });
   }
 }
-

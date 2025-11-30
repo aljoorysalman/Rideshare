@@ -4,8 +4,7 @@ import 'package:rideshare/view/ride/request_ride_view.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
 import 'package:rideshare/view/widgets/custom_button.dart';
 import 'package:rideshare/view/widgets/bottom_nav_bar.dart';
-import 'package:rideshare/view/chat/communication_view.dart';
-import 'package:rideshare/view/profile/profile_view.dart';
+import 'package:rideshare/view/profile/student_profile_view.dart';
 import 'package:rideshare/view/ride/reserve_ride_view.dart';
 
 /// The main container that holds the bottom bar and swaps between tabs.
@@ -29,8 +28,7 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
    final List<Widget> pages = [
   const _HomeContent(),
-  const CommunicationView(),
-  const ProfileView(),
+  const StudentProfileView(),
     ];
 
 
@@ -57,7 +55,7 @@ class _HomeContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 🚗 First section: Request Ride
+            //  First section: Request Ride
             Image.asset('img/car.png', height: 80),
             const Gap(16),
             CustomButton(
@@ -74,7 +72,7 @@ class _HomeContent extends StatelessWidget {
 
             const Gap(100), // spacing between the two ride types
 
-            // ⏰ Second section: Schedule Ride
+            //  Second section: Schedule Ride
             Image.asset('img/clock.png', height: 80),
             const Gap(16),
             CustomButton(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatView extends StatefulWidget {
   final String roomId;
@@ -12,27 +13,30 @@ class ChatView extends StatefulWidget {
 
 class _ChatViewState extends State<ChatView> {
   final TextEditingController _messageController = TextEditingController();
+  final senderId = FirebaseAuth.instance.currentUser!.uid;
 
   void sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
 
+    // Add message to chat subcollection  (FIXED PATH)
     await FirebaseFirestore.instance
-        .collection("messages")
-        .doc(widget.roomId)
-        .collection("chat")
+        .collection("chat_rooms")             
+        .doc(widget.roomId)                 
+        .collection("messages")              
         .add({
       "message": _messageController.text.trim(),
-      "senderId": "user1",
+      "senderId": senderId,
       "timestamp": FieldValue.serverTimestamp(),
     });
 
+    // Update or create main room document
     await FirebaseFirestore.instance
-        .collection("messages")
-        .doc(widget.roomId)
-        .update({
+        .collection("chat_rooms")             
+        .doc(widget.roomId)                   
+        .set({
       "lastMessage": _messageController.text.trim(),
-      "timestamp": DateTime.now(),
-    });
+      "timestamp": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
     _messageController.clear();
   }
@@ -50,9 +54,9 @@ class _ChatViewState extends State<ChatView> {
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection("messages")
-                  .doc(widget.roomId)
-                  .collection("chat")
+                  .collection("chat_rooms")          
+                  .doc(widget.roomId)               
+                  .collection("messages")          
                   .orderBy("timestamp", descending: false)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -67,7 +71,8 @@ class _ChatViewState extends State<ChatView> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    final bool isMe = msg["senderId"] == "user1";
+                    final currentUser = FirebaseAuth.instance.currentUser!.uid;
+                    final bool isMe = msg["senderId"] == currentUser;
 
                     return Align(
                       alignment:
@@ -115,7 +120,7 @@ class _ChatViewState extends State<ChatView> {
             ),
           ),
         ],
-     ),
-);
-}
+      ),
+    );
+  }
 }

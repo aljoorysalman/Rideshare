@@ -1,120 +1,113 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:rideshare/controller/driver_service.dart';
-import 'package:rideshare/model/driver_model.dart';
+import 'package:rideshare/controller/users/driver_controller.dart';
+import 'package:rideshare/model/users/driver_model.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
-import 'package:rideshare/view/chat/chat_screen.dart';
-import 'package:rideshare/view/widgets/custom_button.dart';
+import 'package:rideshare/view/chat/chat_view.dart';
+import'package:rideshare/view/widgets/cancel_button.dart';
+import 'package:location/location.dart';
+import 'package:rideshare/controller/emergency/emergency_controller.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rideshare/model/ride/ride_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:rideshare/view/ride/payment_page.dart';
 
-
-
-class AcceptedRideView extends StatelessWidget {
-  final String driverID;
-  final LatLng pickupLatLng;
-
-  late final String pickupPin;
-
-  AcceptedRideView({
+class AcceptedRideView extends StatefulWidget {
+  final String driverID;      // The ID of the driver for this ride
+  final LatLng pickupLatLng; // The pickup location coordinates
+  
+  const AcceptedRideView({
     super.key,
     required this.driverID,
     required this.pickupLatLng,
-  }) {
-    pickupPin = _generatePickupPin();   
-  }
-
- 
-  String _generatePickupPin() {
-    final random = DateTime.now().millisecondsSinceEpoch;
-    return (random % 9000 + 1000).toString(); // 4-digit PIN
-  }
+  });
 
 
+  @override
+  State<AcceptedRideView> createState() => _AcceptedRideViewState();
+}
+
+class _AcceptedRideViewState extends State<AcceptedRideView> {
+  bool _navigatedToPayment = false; 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: StreamBuilder<DriverModel?>(
-          stream: DriverService().streamDriver(driverID),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        //  FIRST STREAM: Listen to the ride document in Firestore in real time
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection("rides")
+              .where("driverID", isEqualTo: widget.driverID)
+              .limit(1)
+              .snapshots(),
+          builder: (context, rideSnap) {
+            // If data is still loading then show spinner
+            if (!rideSnap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (!snapshot.hasData || snapshot.data == null) {
-              return const Center(
-                child: Text("Driver data not available"),
-              );
+            // If no ride exists → show message
+            if (rideSnap.data!.docs.isEmpty) {
+              return const Center(child: Text("No active ride found"));
             }
+            // Convert the Firestore document into a RideModel object
+            final rideDoc = rideSnap.data!.docs.first;
+            final ride = RideModel.fromMap(
+              rideDoc.id,
+              rideDoc.data() as Map<String, dynamic>,
+            );
+            if ((ride.status == "finished" || ride.status == "done") &&
+                !_navigatedToPayment &&
+                mounted) {
+              _navigatedToPayment = true;
 
-            final driver = snapshot.data!;
-
-            //  Convert driver.location (GeoPoint) to LatLng for the map.
-            final LatLng driverLatLng = (driver.location != null)
-                ? LatLng(
-                    driver.location!.latitude,
-                    driver.location!.longitude,
-                  )
-                : pickupLatLng; // fallback if location is null
-
-            final Set<Marker> markers = {
-              Marker(
-                markerId: const MarkerId('pickup'),
-                position: pickupLatLng,
-                infoWindow: const InfoWindow(title: 'Pickup'),
-              ),
-              Marker(
-                markerId: const MarkerId('driver'),
-                position: driverLatLng,
-                infoWindow: const InfoWindow(title: 'Driver'),
-              ),
-            };
-
-            return Column(
-              children: [
-                const SizedBox(height: 12),
-
-                // ---------------- MAP ----------------
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
-                    child: SizedBox(
-                      height: 230,
-                     child: GoogleMap(
-                        key: UniqueKey(),  //  forces rebuild when StreamBuilder fires
-                        initialCameraPosition: CameraPosition(
-                        target: pickupLatLng,
-                        zoom: 15.5,
-                      ),
-  markers: markers,
-  zoomControlsEnabled: false,
-  myLocationButtonEnabled: false,
-  myLocationEnabled: false,
-),
+              Future.microtask(() {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PaymentPage(
+                      rideId: ride.rideID,
+                      driverId: ride.driverID,
+                      amount: ride.fare,
                     ),
                   ),
-                ),
+                );
+              });
+            }
 
-                const SizedBox(height: 16),
 
-                // ---------------- BOTTOM PANEL ----------------
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF3F3F3),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(32),
-                        topRight: Radius.circular(32),
+
+
+            //  SECOND STREAM: Listen to driver’s live data (location, name, etc.)
+            return StreamBuilder<DriverModel?>(
+              stream: DriverController().streamDriver(widget.driverID),
+              builder: (context, driverSnap) {
+                if (!driverSnap.hasData) {
+                  // Still loading → show spinner
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Driver data is available
+                final driver = driverSnap.data!;
+
+                return Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F3F3),
+                        borderRadius: BorderRadius.circular(32),
                       ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+
+                      // MAIN CONTENT
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          //---------------- DRIVER INFO + BUTTONS ----------------
+                          // DRIVER info
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -122,75 +115,68 @@ class AcceptedRideView extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Driver Name
                                     Text(
                                       driver.name,
                                       style: const TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.textPrimary,
                                       ),
                                     ),
+
                                     const SizedBox(height: 6),
-
-                                    // Rating Row
+                                    // Driver rating row
                                     Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.star,
-                                          color: Colors.amber,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          driver.rating.toStringAsFixed(1),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    children: [
+                                      const Icon(Icons.star, color: Colors.amber, size: 20),
+                                      const SizedBox(width: 4),
+                                         Text(
+                                          driver.averageRating.toStringAsFixed(1),
+                                             style: const TextStyle(
+                                              fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                             ),
+                                           ),
+                                         ],
+                                   ),
+
                                     const SizedBox(height: 16),
-
-                              
+                                    // Car information
                                     Text(
-
-                                       "${driver.carModel} • ${driver.carColor} • ${driver.plateNumber}",
-                                      style: const TextStyle(
-                                        fontSize: 17,
-                                        color: AppColors.textPrimary,
-                                      ),
+                                      "${driver.carModel} • ${driver.carColor} • ${driver.plateNumber}",
+                                      style: const TextStyle(fontSize: 17),
                                     ),
                                   ],
                                 ),
                               ),
 
                               const SizedBox(width: 20),
-
+                              // Right side: call + message buttons
                               Column(
                                 children: [
-                                  // CALL BUTTON
                                   _circleButton(
                                     icon: Icons.call,
-                                    onTap: () {
-                                      // TODO: add phone call logic later
-                                    },
+                                    onTap: () {},
                                   ),
                                   const SizedBox(height: 12),
+                                 _circleButton(
+                                  icon: Icons.message_outlined,
+                                  onTap: () {
+                                   final studentID = FirebaseAuth.instance.currentUser!.uid;
+                                   final driverID = widget.driverID;
 
-                                  // MESSAGE BUTTON
-                                  _circleButton(
-                                    icon: Icons.message_outlined,
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const ChatScreen(),
-                                        ),
-                                      );
-                                    },
+                             // Sort IDs alphabetically so room ID is stable
+                             final List<String> ids = [studentID, driverID]..sort();
+                             final roomId = "${ids[0]}_${ids[1]}";
+
+                               Navigator.push(
+                                 context,
+                                  MaterialPageRoute(
+                                  builder: (_) => ChatView(roomId: roomId),
                                   ),
+                                );
+                                },
+                             ),
+
                                 ],
                               ),
                             ],
@@ -198,7 +184,7 @@ class AcceptedRideView extends StatelessWidget {
 
                           const SizedBox(height: 32),
 
-                          //---------------- PICKUP PIN ----------------
+                          // PICKUP PIN
                           Center(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -210,7 +196,7 @@ class AcceptedRideView extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(40),
                               ),
                               child: Text(
-                                "PickupPIN: $pickupPin",
+                                "Pickup PIN: ${ride.pickupPIN}",
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -219,32 +205,53 @@ class AcceptedRideView extends StatelessWidget {
                             ),
                           ),
 
-                          const Spacer(),
+                          const SizedBox(height: 40),
 
-                          //---------------- CANCEL RIDE BUTTON ----------------
-                        Center(
-                         child: CustomButton(
-                        text: "Cancel ride",
-                        onPressed: () => Navigator.pop(context),
-                        isFullWidth: false,
-                        borderRadius: 30,
-                        padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                       ),
-                       color: Colors.black,
-                       textColor: Colors.white,
+                          // SOS BUTTON
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: InkWell(
+                              onTap: () => _showEmergencyDialog(rideDoc.id),
+                              child: Container(
+                                width: 70,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.red.withOpacity(0.4),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    "SOS",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                     const SizedBox(height: 32),
+                      Center(child:  CancelButton( id: rideDoc.id, isRide: true,),
                       ),
- ),
+                   
 
-
-                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                );
+              },
             );
           },
         ),
@@ -252,27 +259,96 @@ class AcceptedRideView extends StatelessWidget {
     );
   }
 
-            // SMALL CIRCULAR BUTTON FOR CALL/CHAT
-            static Widget _circleButton({
-  required IconData icon,
-  required VoidCallback onTap,
-}) {
-  return Material(
-    color: const Color(0xFFD9D9D9), // light grey
-    shape: const CircleBorder(),
-    elevation: 0,
-    child: InkWell(
-      customBorder: const CircleBorder(),
-      onTap: onTap,
-      child: Padding(   
-        padding: const EdgeInsets.all(12),
-        child: Icon(
-          icon,          
-          size: 22,
-          color: Colors.black,
+  static Widget _circleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: const Color(0xFFD9D9D9),
+      shape: const CircleBorder(),
+      elevation: 0,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(icon, size: 22, color: Colors.black),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  // EMERGENCY DIALOG
+  void _showEmergencyDialog(String rideID) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // user must choose Cancel or Send
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            "Emergency",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            "Are you sure you want to send an emergency alert?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                _sendEmergencyAlert(rideID); // FIXED
+              },
+              child: const Text("Send SOS"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _sendEmergencyAlert(String rideID) async {
+    try {
+      // Get student ID (from Firebase Auth)
+      final studentID = FirebaseAuth.instance.currentUser!.uid;
+
+      // Get current location
+      LocationData loc = await Location().getLocation();
+      LatLng currentLocation = LatLng(loc.latitude!, loc.longitude!);
+
+      // Trigger emergency using  service
+      await EmergencyController().triggerEmergency(
+        studentID: studentID,
+        driverID: widget.driverID, // passed from AcceptedRideView
+        rideID: rideID,
+        location: currentLocation,
+      );
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("SOS triggered! Calling emergency contact..."),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      // Show error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to send SOS: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 }

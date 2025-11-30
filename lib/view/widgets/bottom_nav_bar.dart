@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rideshare/core/constants/app_colors.dart';
 import 'package:rideshare/view/ride/home_view.dart';
-import 'package:rideshare/view/chat/communication_view.dart';
-import 'package:rideshare/view/profile/profile_view.dart';
+import 'package:rideshare/view/profile/student_profile_view.dart';
 
 class BottomNavBar extends StatefulWidget {
   final int currentIndex; // highlights the active page
@@ -20,10 +19,10 @@ class BottomNavBar extends StatefulWidget {
 
 class _BottomNavBarState extends State<BottomNavBar> {
   void _onItemTapped(int index) {
-    // ✅ prevent reloading same page
+    //  prevent reloading same page
     if (index == widget.currentIndex) return;
 
-    // ✅ navigate to correct screen
+    //  navigate to correct screen
     switch (index) {
       case 0:
         Navigator.pushReplacement(
@@ -34,15 +33,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
       case 1:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const CommunicationView()),
+          MaterialPageRoute(builder: (_) => const StudentProfileView()),
         );
         break;
-      case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ProfileView()),
-        );
-        break;
+    
     }
   }
 
@@ -51,21 +45,17 @@ class _BottomNavBarState extends State<BottomNavBar> {
     return BottomNavigationBar(
       currentIndex: widget.currentIndex,
       onTap: _onItemTapped,
-      backgroundColor: AppColors.background, // ✅ consistent background
+      backgroundColor: AppColors.background, //  consistent background
       selectedItemColor: AppColors.primary, // active icon color
       unselectedItemColor: Colors.grey, // inactive color
-      selectedIconTheme: const IconThemeData(size: 30), // ✅ active icon size
-      unselectedIconTheme: const IconThemeData(size: 28), // ✅ equal inactive icons
-      type: BottomNavigationBarType.fixed, // ✅ ensures equal spacing
+      selectedIconTheme: const IconThemeData(size: 30), //  active icon size
+      unselectedIconTheme: const IconThemeData(size: 28), //  equal inactive icons
+      type: BottomNavigationBarType.fixed, // ensures equal spacing
       elevation: 10, // small shadow for floating look
 
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.grid_view_rounded), // Home
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.groups_rounded), // Communication
           label: '',
         ),
         BottomNavigationBarItem(
